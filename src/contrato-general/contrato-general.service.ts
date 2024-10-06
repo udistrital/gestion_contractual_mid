@@ -27,6 +27,7 @@ export class ContratoGeneralService {
     origenPresupuestosId: 125,
     temaGastoInversionId: 126,
     medioPogoId: 127,
+    unidadEjecutoraId: 7,
   };
 
   async consultarInfoContrato(id: number): Promise<any> {
