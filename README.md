@@ -13,6 +13,7 @@ API MID intermediaria entre el cliente ARGOv2 y el CURD de ARGO V2.
 ### Variables de Entorno
 ```shell
 ENDP_GESTION_CONTRACTUAL_CRUD: [Endpoint de info proveedores]
+ENDP_PARAMETROS_CRUD: [Endpoint de info proveedores]
 ```
 **NOTA:** Las variables se asignan en una archivo privado .env.
 
