@@ -51,7 +51,7 @@ export class ContratoGeneralController {
       throw new HttpException({
         Success: false,
         Status: HttpStatus.INTERNAL_SERVER_ERROR,
-        Message: 'Error interno del servidor',
+        Message: `Error interno del servidor: ${error.message}`,
         Data: null,
       }, HttpStatus.INTERNAL_SERVER_ERROR);
     }

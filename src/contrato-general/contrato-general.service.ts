@@ -114,8 +114,9 @@ export class ContratoGeneralService {
         })
     );
 
-    if(resultadosTransformados.some(resultado => resultado === null)) {
-        throw new Error('Error al transformar contrato');
+    console.log(resultadosTransformados)
+    if (resultadosTransformados.some(subArr => subArr.some(item => item == null))) {
+      throw new Error("Valores obtenidos de parámetros no válidos");
     }
 
     const contratoTransformado = {...contratoRaw};
