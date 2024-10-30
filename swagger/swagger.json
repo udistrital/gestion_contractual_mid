@@ -1,0 +1,57 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_healthCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/contratos-generales/{id}": {
+      "get": {
+        "operationId": "ContratoGeneralController_consultarInfoContrato",
+        "summary": "Retorna información de contrato-general por ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del contrato general",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna detalle de un contrato-general."
+          },
+          "400": {
+            "description": "Error en la solicitud."
+          }
+        }
+      }
+    }
+  },
+  "info": {
+    "title": "Gestion Contractual API MID",
+    "description": "API",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "API",
+      "description": ""
+    }
+  ],
+  "servers": [],
+  "components": {
+    "schemas": {}
+  }
+}
