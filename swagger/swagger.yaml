@@ -77,7 +77,7 @@ paths:
       summary: Obtener sedes
       tags: &ref_0
         - Espacios Físicos
-  /espacios-fisicos/dependenciasSede/{id}:
+  /espacios-fisicos/dependencias-sede/{id}:
     get:
       description: Obtiene todas las dependencias asociadas a una sede específica
       operationId: EspaciosFisicosController_obtenerDependencias

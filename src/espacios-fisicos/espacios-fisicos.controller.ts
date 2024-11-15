@@ -79,7 +79,7 @@ export class EspaciosFisicosController {
     );
   }
 
-  @Get('/dependenciasSede/:id')
+  @Get('/dependencias-sede/:id')
   @ApiOperation({
     summary: 'Obtener dependencias por sede',
     description:
