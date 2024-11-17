@@ -9,13 +9,15 @@
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "App"
+        ]
       }
     },
     "/contratos-generales/{id}": {
       "get": {
         "operationId": "ContratoGeneralController_consultarInfoContrato",
-        "summary": "Retorna información de contrato-general por ID.",
         "parameters": [
           {
             "name": "id",
@@ -34,7 +36,177 @@
           "400": {
             "description": "Error en la solicitud."
           }
-        }
+        },
+        "summary": "Retorna información de contrato-general por ID.",
+        "tags": [
+          "ContratoGeneral"
+        ]
+      }
+    },
+    "/espacios-fisicos/sedes": {
+      "get": {
+        "description": "Obtiene todas las sedes activas del sistema",
+        "operationId": "EspaciosFisicosController_obtenerSedes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de sedes obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "Success": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "Status": {
+                          "type": "number",
+                          "example": 200
+                        },
+                        "Message": {
+                          "type": "string",
+                          "example": "Sedes obtenidas exitosamente"
+                        },
+                        "Data": {
+                          "type": "array",
+                          "items": {
+                            "properties": {
+                              "Id": {
+                                "type": "number",
+                                "example": 1
+                              },
+                              "Nombre": {
+                                "type": "string",
+                                "example": "Sede Principal"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "Success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "Status": {
+                      "type": "number",
+                      "example": 404
+                    },
+                    "Message": {
+                      "type": "string",
+                      "example": "No se encontraron sedes activas"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Obtener sedes",
+        "tags": [
+          "Espacios Físicos"
+        ]
+      }
+    },
+    "/espacios-fisicos/dependencias-sede/{id}": {
+      "get": {
+        "description": "Obtiene todas las dependencias asociadas a una sede específica",
+        "operationId": "EspaciosFisicosController_obtenerDependencias",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Identificador de la sede",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de dependencias obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "Success": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "Status": {
+                          "type": "number",
+                          "example": 200
+                        },
+                        "Message": {
+                          "type": "string",
+                          "example": "Dependencias obtenidas exitosamente"
+                        },
+                        "Data": {
+                          "type": "array",
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "type": "number",
+                                "example": 1
+                              },
+                              "nombre": {
+                                "type": "string",
+                                "example": "Facultad de Ingeniería"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "Success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "Status": {
+                      "type": "number",
+                      "example": 404
+                    },
+                    "Message": {
+                      "type": "string",
+                      "example": "No se encontraron dependencias"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Obtener dependencias por sede",
+        "tags": [
+          "Espacios Físicos"
+        ]
       }
     }
   },
