@@ -23,7 +23,14 @@ export class ContratoGeneralController {
   ) {}
 
   @Get(':id')
-  @ApiOperation({ summary: 'Retorna información de contrato-general por ID' })
+  @ApiOperation({
+    summary: 'Retorna información de contrato-general por ID.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Retorna detalle de un contrato-general.',
+  })
+  @ApiResponse({ status: 400, description: 'Error en la solicitud.' })
   @ApiParam({
     name: 'id',
     type: 'number',

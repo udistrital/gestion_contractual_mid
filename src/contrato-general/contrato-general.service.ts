@@ -8,11 +8,11 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { chunk, flatten } from 'lodash';
 import {
+  EstadoContratoResponse,
   PaginatedResponse,
   ResponseMetadata,
 } from '../interfaces/responses.interface';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
-import { EstadoContratoResponse } from '../utils/types';
 
 interface ParametroResponse {
   Status: string;

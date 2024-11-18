@@ -21,8 +21,10 @@ paths:
             type: number
       responses:
         '200':
-          description: ''
-      summary: Retorna información de contrato-general por ID
+          description: Retorna detalle de un contrato-general.
+        '400':
+          description: Error en la solicitud.
+      summary: Retorna información de contrato-general por ID.
       tags: &ref_0
         - ContratoGeneral
   /contratos-generales:

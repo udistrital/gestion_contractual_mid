@@ -8,8 +8,8 @@ import {
 } from '@nestjs/swagger';
 import { EspaciosFisicosService } from './espacios-fisicos.service';
 import { Observable, map, catchError, of } from 'rxjs';
-import { DependenciaSimple, SedeResponse } from '../utils/types';
-import { StandardResponse } from '../interfaces/responses.interface';
+
+import { DependenciaSimple, SedeResponse, StandardResponse } from '../interfaces/responses.interface';
 
 @ApiTags('Espacios Físicos')
 @Controller('espacios-fisicos')
