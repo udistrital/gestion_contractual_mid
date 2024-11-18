@@ -12,7 +12,7 @@ import {
   DependenciaResponse,
   DependenciaSimple,
   SedeResponse,
-} from '../utils/types';
+} from '../interfaces/responses.interface';
 
 @Injectable()
 export class EspaciosFisicosService {
