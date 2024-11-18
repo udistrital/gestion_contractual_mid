@@ -21,3 +21,14 @@ export interface DependenciaSimple {
   id: number;
   nombre: string;
 }
+
+export interface EstadoContratoResponse {
+  id: number;
+  usuario_id: number;
+  estado_parametro_id: number | null;
+  motivo: string;
+  fecha_ejecucion_estado: string;
+  activo: boolean;
+  fecha_creacion: string | null;
+  fecha_modificacion: string;
+}

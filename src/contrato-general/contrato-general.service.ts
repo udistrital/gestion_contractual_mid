@@ -12,6 +12,7 @@ import {
   ResponseMetadata,
 } from '../interfaces/responses.interface';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
+import { EstadoContratoResponse } from '../utils/types';
 
 interface ParametroResponse {
   Status: string;
@@ -155,20 +156,31 @@ export class ContratoGeneralService {
     contratos: any[],
     cacheParametros: Map<number, Map<number, string>>,
   ): Promise<any[]> {
-    return contratos.map((contratoRaw) => {
-      const contratoTransformado = { ...contratoRaw };
+    const contratosConEstado = await Promise.all(
+      contratos.map(async (contratoRaw) => {
+        const contratoTransformado = { ...contratoRaw };
 
-      Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
-        if (contratoRaw[key] != null) {
-          const parametrosMap = cacheParametros.get(tipoParametroId);
-          if (parametrosMap && parametrosMap.has(contratoRaw[key])) {
-            contratoTransformado[key] = parametrosMap.get(contratoRaw[key]);
+        // Transformación existente de parámetros
+        Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
+          if (contratoRaw[key] != null) {
+            const parametrosMap = cacheParametros.get(tipoParametroId);
+            if (parametrosMap && parametrosMap.has(contratoRaw[key])) {
+              contratoTransformado[key] = parametrosMap.get(contratoRaw[key]);
+            }
           }
-        }
-      });
+        });
 
-      return contratoTransformado;
-    });
+        // Agregar estado
+        const estado = await this.consultarEstadoContrato(contratoRaw.id);
+        if (estado !== null) {
+          contratoTransformado.estado = estado;
+        }
+
+        return contratoTransformado;
+      }),
+    );
+
+    return contratosConEstado;
   }
 
   async getAll(
@@ -239,6 +251,26 @@ export class ContratoGeneralService {
         error,
       );
       throw error;
+    }
+  }
+
+  private async consultarEstadoContrato(id: number): Promise<string | null> {
+    try {
+      const response = await this.fetchWithRetry(() =>
+        this.axiosInstance.get<EstadoContratoResponse>(`estados-contrato/${id}`),
+      );
+
+      if (!response?.data) {
+        this.logger.warn(`Estado no encontrado para el contrato ${id}`);
+        return null;
+      }
+
+      return response.data.motivo;
+    } catch (error) {
+      this.logger.warn(
+        `Error al consultar estado del contrato ${id}: ${error.message}`,
+      );
+      return null;
     }
   }
 }

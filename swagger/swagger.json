@@ -15,6 +15,82 @@
         ]
       }
     },
+    "/contratos-generales": {
+      "get": {
+        "operationId": "ContratoGeneralController_consultarContratos",
+        "parameters": [
+          {
+            "name": "fields",
+            "required": false,
+            "in": "query",
+            "description": "Campos a retornar (separados por comas)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Campo por el cual ordenar",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderBy",
+            "required": false,
+            "in": "query",
+            "description": "Dirección del ordenamiento",
+            "schema": {
+              "enum": [
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Número de registros a retornar",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Número de registros a saltar",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "query",
+            "required": false,
+            "in": "query",
+            "description": "Filtros dinámicos en formato JSON",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de contratos generales"
+          }
+        },
+        "summary": "Retorna información de contratos generales con filtros y paginación",
+        "tags": [
+          "ContratoGeneral"
+        ]
+      }
+    },
     "/contratos-generales/{id}": {
       "get": {
         "operationId": "ContratoGeneralController_consultarInfoContrato",
@@ -31,13 +107,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Retorna detalle de un contrato-general."
-          },
-          "400": {
-            "description": "Error en la solicitud."
+            "description": ""
           }
         },
-        "summary": "Retorna información de contrato-general por ID.",
+        "summary": "Retorna información de contrato-general por ID",
         "tags": [
           "ContratoGeneral"
         ]
