@@ -32,6 +32,64 @@ export class ContratoGeneralService {
     unidadEjecutoraId: 7,
   };
 
+  private readonly UNIDADES = [
+    '', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
+    'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve'
+  ];
+
+  private readonly DECENAS = [
+    '', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'
+  ];
+
+  private readonly CENTENAS = [
+    '', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'
+  ];
+
+  private convertirGrupo(n: number): string {
+    let resultado = '';
+    if (n === 0) return '';
+    if (n === 100) return 'cien';
+    const centenas = Math.floor(n / 100);
+    if (centenas > 0) {
+      resultado += this.CENTENAS[centenas] + ' ';
+    }
+
+    const decenas = n % 100;
+    if (decenas > 0) {
+      if (decenas < 20) {
+        resultado += this.UNIDADES[decenas];
+      } else {
+        const unidades = decenas % 10;
+        const decenasPiso = Math.floor(decenas / 10);
+        if (unidades === 0) {
+          resultado += this.DECENAS[decenasPiso];
+        } else {
+          resultado += this.DECENAS[decenasPiso] + ' y ' + this.UNIDADES[unidades].toLowerCase();
+        }
+      }
+    }
+
+    return resultado.trim();
+  }
+
+  private numeroATexto(numero: number): string {
+    if (numero === 0) return 'cero';
+    if (numero < 0) return 'Menos ' + this.numeroATexto(Math.abs(numero));
+
+    let resultado = '';
+    let billones = Math.floor(numero / 1000000000000);
+    let millones = Math.floor((numero % 1000000000000) / 1000000);
+    let miles = Math.floor((numero % 1000000) / 1000);
+    let resto = numero % 1000;
+
+    if (billones > 0) {resultado += this.convertirGrupo(billones) + ' billon' + (billones > 1 ? 'es ' : ' ');}
+    if (millones > 0) {resultado += this.convertirGrupo(millones) + ' millon' + (millones > 1 ? 'es ' : ' ');}
+    if (miles > 0) {resultado += this.convertirGrupo(miles) + ' mil ';}
+    if (resto > 0) {resultado += this.convertirGrupo(resto);}
+
+    return resultado.trim();
+  }
+
   async consultarInfoContrato(id: number): Promise<any> {
     const endpoint: string = this.configService.get<string>(
       'ENDP_GESTION_CONTRACTUAL_CRUD',
@@ -71,6 +129,7 @@ export class ContratoGeneralService {
   async getContratoTransformed(id: number): Promise<any> {
     try {
       const contratoRaw = await this.consultarInfoContrato(id);
+      console.log(this.numeroATexto(35740150));
       console.log('Contrato raw:', contratoRaw);
       const contratoTransformado = await this.transformarContrato(contratoRaw);
       console.log('Contrato transformado:', contratoTransformado);
@@ -150,6 +209,11 @@ export class ContratoGeneralService {
     flatten(resultadosTransformados).forEach(({ key, valor }) => {
       contratoTransformado[key] = valor;
     });
+
+    if (contratoTransformado.valorPesos) {
+      contratoTransformado.valorPesosTexto = this.numeroATexto(contratoTransformado.valorPesos) + ' Pesos';
+      console.log(contratoTransformado.valorPesosTexto);
+    }
 
     return contratoTransformado;
   }
