@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Query,
   ValidationPipe,
   HttpStatus,
   HttpException,
@@ -8,9 +9,10 @@ import {
   Param,
 } from '@nestjs/common';
 import { ContratoGeneralService } from './contrato-general.service';
+import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { StandardResponse } from '../interfaces/responses.interface';
 import { ParametrosConsultarContratoDto } from './dto/params.dto';
-import { StandardResponse } from '../utils/standardResponse.interface';
 
 @Controller('contratos-generales')
 export class ContratoGeneralController {
@@ -41,6 +43,7 @@ export class ContratoGeneralController {
       const result = await this.contratoGeneralService.getContratoTransformed(
         +param.id,
       );
+
       return {
         Success: true,
         Status: HttpStatus.OK,
@@ -52,17 +55,56 @@ export class ContratoGeneralController {
         `Error en consultarInfoContrato: ${error.message}`,
         error.stack,
       );
+
       if (error instanceof HttpException) {
-        throw new HttpException(
-          {
-            Success: false,
-            Status: HttpStatus.NOT_FOUND,
-            Message: error.message,
-            Data: null,
-          },
-          HttpStatus.NOT_FOUND,
-        );
+        throw error;
       }
+
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: `Error interno del servidor: ${error.message}`,
+          Data: null,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get()
+  @ApiOperation({
+    summary:
+      'Retorna información de contratos generales con filtros y paginación',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de contratos generales',
+  })
+  async consultarContratos(
+    @Query(new ValidationPipe({ transform: true }))
+    queryParams: BaseQueryParamsDto,
+  ): Promise<StandardResponse<any[]>> {
+    try {
+      const result = await this.contratoGeneralService.getAll(queryParams);
+
+      return {
+        Success: true,
+        Status: HttpStatus.OK,
+        Message: 'Contratos consultados exitosamente',
+        Data: result.Data,
+        Metadata: result.Metadata,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error en consultarContratos: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       throw new HttpException(
         {
           Success: false,

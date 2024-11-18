@@ -5,14 +5,46 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { chunk, flatten } from 'lodash';
+import {
+  EstadoContratoResponse,
+  PaginatedResponse,
+  ResponseMetadata,
+} from '../interfaces/responses.interface';
+import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
+
+interface ParametroResponse {
+  Status: string;
+  Data: Array<{
+    Id: number;
+    Nombre: string;
+    [key: string]: any;
+  }>;
+}
+
+interface ContratoResponse {
+  Status: string;
+  Data: any;
+}
 
 @Injectable()
 export class ContratoGeneralService {
   private readonly logger = new Logger(ContratoGeneralService.name);
+  private readonly axiosInstance: AxiosInstance;
+  private readonly parametrosAxiosInstance: AxiosInstance;
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) {
+    this.axiosInstance = axios.create({
+      baseURL: this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD'),
+      timeout: 5000,
+    });
+
+    this.parametrosAxiosInstance = axios.create({
+      baseURL: this.configService.get<string>('ENDP_PARAMETROS_CRUD'),
+      timeout: 5000,
+    });
+  }
 
   private readonly parameterMap = {
     tipoCompromisoId: 111,
@@ -30,7 +62,23 @@ export class ContratoGeneralService {
     temaGastoInversionId: 126,
     medioPogoId: 127,
     unidadEjecutoraId: 7,
-  };
+  } as const;
+
+  private async fetchWithRetry<T>(
+    axiosCall: () => Promise<T>,
+    retries = 3,
+    delay = 1000,
+  ): Promise<T> {
+    try {
+      return await axiosCall();
+    } catch (error) {
+      if (retries > 0 && axios.isAxiosError(error)) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
+      }
+      throw error;
+    }
+  }
 
   private readonly UNIDADES = [
     '', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
@@ -91,15 +139,12 @@ export class ContratoGeneralService {
   }
 
   async consultarInfoContrato(id: number): Promise<any> {
-    const endpoint: string = this.configService.get<string>(
-      'ENDP_GESTION_CONTRACTUAL_CRUD',
-    );
-    const url = `${endpoint}contratos-generales/${id}`;
-
     try {
-      const response = await axios.get(url);
+      const response = await this.fetchWithRetry(() =>
+        this.axiosInstance.get<ContratoResponse>(`contratos-generales/${id}`),
+      );
 
-      if (!response.data || !response.data.Data) {
+      if (!response.data?.Data) {
         this.logger.warn(`Respuesta inválida para el contrato ${id}`);
         throw new NotFoundException(
           `Contrato general con ID ${id} no encontrado o respuesta inválida`,
@@ -115,14 +160,142 @@ export class ContratoGeneralService {
           );
         }
         this.logger.error(
-          `Detalles del error de Axios: ${JSON.stringify(error.response?.data)}`,
+          `Error al consultar el contrato ${id}: ${JSON.stringify(error.response?.data)}`,
         );
       }
       throw new InternalServerErrorException(
         `Error al consultar el contrato: ${error.message}`,
       );
-    } finally {
-      this.logger.log(`Finalizada la consulta para el contrato ${id}`);
+    }
+  }
+
+  private async obtenerParametrosPorTipo(
+    tipoParametroId: number,
+  ): Promise<Map<number, string>> {
+    try {
+      const response = await this.fetchWithRetry(() =>
+        this.parametrosAxiosInstance.get<ParametroResponse>(
+          `parametro?query=TipoParametroId:${tipoParametroId}&limit=0`,
+        ),
+      );
+
+      if (response.data.Status !== '200' || !response.data.Data) {
+        throw new Error('Respuesta inválida del servidor de parámetros');
+      }
+
+      return new Map(
+        response.data.Data.map((param) => [param.Id, param.Nombre]),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  private async cargarCacheParametros(): Promise<
+    Map<number, Map<number, string>>
+  > {
+    const tiposParametros = new Set(Object.values(this.parameterMap));
+    const cacheParametros = new Map<number, Map<number, string>>();
+
+    await Promise.all(
+      Array.from(tiposParametros).map(async (tipoParametroId) => {
+        const parametros = await this.obtenerParametrosPorTipo(tipoParametroId);
+        cacheParametros.set(tipoParametroId, parametros);
+      }),
+    );
+
+    return cacheParametros;
+  }
+
+  private async transformarContratos(
+    contratos: any[],
+    cacheParametros: Map<number, Map<number, string>>,
+  ): Promise<any[]> {
+    const contratosConEstado = await Promise.all(
+      contratos.map(async (contratoRaw) => {
+        const contratoTransformado = { ...contratoRaw };
+
+        // Transformación existente de parámetros
+        Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
+          if (contratoRaw[key] != null) {
+            const parametrosMap = cacheParametros.get(tipoParametroId);
+            if (parametrosMap && parametrosMap.has(contratoRaw[key])) {
+              contratoTransformado[key] = parametrosMap.get(contratoRaw[key]);
+            }
+          }
+        });
+
+        // Agregar estado
+        const estado = await this.consultarEstadoContrato(contratoRaw.id);
+        if (estado !== null) {
+          contratoTransformado.estado = estado;
+        }
+
+        if (contratoTransformado.valorPesos) {
+          contratoTransformado.valorPesosTexto = this.numeroATexto(contratoTransformado.valorPesos) + ' Pesos';
+          console.log(contratoTransformado.valorPesosTexto);
+        }
+
+        return contratoTransformado;
+      }),
+    );
+
+    return contratosConEstado;
+  }
+
+  async getAll(
+    queryParams: BaseQueryParamsDto,
+  ): Promise<PaginatedResponse<any>> {
+    try {
+      const response = await this.fetchWithRetry(() =>
+        this.axiosInstance.get<PaginatedResponse<any>>('contratos-generales', {
+          params: queryParams,
+        }),
+      );
+
+      if (!response.data?.Data) {
+        this.logger.warn('Respuesta inválida al consultar contratos generales');
+        throw new NotFoundException('Contratos generales no encontrados');
+      }
+
+      const cacheParametros = await this.cargarCacheParametros();
+
+      const BATCH_SIZE = 25; // Reducido de 50 a 25 por las llamadas adicionales
+      const batches = chunk(response.data.Data, BATCH_SIZE);
+
+      const results = await Promise.all(
+        batches.map((batch) =>
+          this.transformarContratos(batch, cacheParametros),
+        ),
+      );
+
+      const metadata: ResponseMetadata = response.data.Metadata || {
+        total: response.data.Data.length,
+        limit: queryParams.limit || 10,
+        offset: queryParams.offset || 0,
+        currentPage:
+          Math.floor((queryParams.offset || 0) / (queryParams.limit || 10)) + 1,
+        totalPages: Math.ceil(
+          response.data.Data.length / (queryParams.limit || 10),
+        ),
+        hasNextPage:
+          (queryParams.offset || 0) + (queryParams.limit || 10) <
+          response.data.Data.length,
+        hasPreviousPage: (queryParams.offset || 0) > 0,
+      };
+
+      return {
+        Data: flatten(results),
+        Metadata: metadata,
+      };
+    } catch (error) {
+      this.logger.error('Error en getAll:', error);
+      throw new InternalServerErrorException(
+        `Error al consultar contratos generales: ${error.message}`,
+      );
     }
   }
 
@@ -130,9 +303,11 @@ export class ContratoGeneralService {
     try {
       const contratoRaw = await this.consultarInfoContrato(id);
       console.log(this.numeroATexto(35740150));
-      console.log('Contrato raw:', contratoRaw);
-      const contratoTransformado = await this.transformarContrato(contratoRaw);
-      console.log('Contrato transformado:', contratoTransformado);
+      const cacheParametros = await this.cargarCacheParametros();
+      const [contratoTransformado] = await this.transformarContratos(
+        [contratoRaw],
+        cacheParametros,
+      );
       return contratoTransformado;
     } catch (error) {
       this.logger.error(
@@ -143,78 +318,23 @@ export class ContratoGeneralService {
     }
   }
 
-  private async obtenerValorTransformado(
-    tipoParametroId: number,
-    valorId: number,
-  ): Promise<string> {
-    const endpoint = this.configService.get<string>('ENDP_PARAMETROS_CRUD');
-    const url = `${endpoint}parametro?query=TipoParametroId:${tipoParametroId}&limit=0`;
-
+  private async consultarEstadoContrato(id: number): Promise<string | null> {
     try {
-      const response = await axios.get(url);
-
-      if (response.data.Status !== '200' || !response.data.Data) {
-        throw new Error('Respuesta inválida del servidor de parámetros');
-      }
-
-      const parametro = response.data.Data.find((item) => item.Id === valorId);
-      if (parametro) {
-        return parametro.Nombre;
-      } else {
-        throw new Error(`Parámetro no encontrado (ID: ${valorId})`);
-      }
-    } catch (error) {
-      this.logger.error(
-        `Error al obtener valor transformado: ${error.message}`,
+      const response = await this.fetchWithRetry(() =>
+        this.axiosInstance.get<EstadoContratoResponse>(`estados-contrato/${id}`),
       );
-      throw error;
+
+      if (!response?.data) {
+        this.logger.warn(`Estado no encontrado para el contrato ${id}`);
+        return null;
+      }
+
+      return response.data.motivo;
+    } catch (error) {
+      this.logger.warn(
+        `Error al consultar estado del contrato ${id}: ${error.message}`,
+      );
+      return null;
     }
-  }
-
-  private async transformarContrato(contratoRaw: any): Promise<any> {
-    const camposATransformar = Object.entries(this.parameterMap).filter(
-      ([key]) => contratoRaw[key] !== null && contratoRaw[key] !== undefined,
-    );
-
-    const chunks = chunk(camposATransformar, 2);
-
-    const resultadosTransformados = await Promise.all(
-      chunks.map(async (chunk) => {
-        const transformaciones = chunk.map(async ([key, tipoParametroId]) => {
-          try {
-            const valorTransformado = await this.obtenerValorTransformado(
-              tipoParametroId,
-              contratoRaw[key],
-            );
-            return { key, valor: valorTransformado };
-          } catch (error) {
-            this.logger.warn(`Error al transformar ${key}: ${error.message}`);
-            return Promise.resolve(null);
-          }
-        });
-        return Promise.all(transformaciones);
-      }),
-    );
-
-    console.log(resultadosTransformados);
-    if (
-      resultadosTransformados.some((subArr) =>
-        subArr.some((item) => item == null),
-      )
-    ) {
-      throw new Error('Valores obtenidos de parámetros no válidos');
-    }
-
-    const contratoTransformado = { ...contratoRaw };
-    flatten(resultadosTransformados).forEach(({ key, valor }) => {
-      contratoTransformado[key] = valor;
-    });
-
-    if (contratoTransformado.valorPesos) {
-      contratoTransformado.valorPesosTexto = this.numeroATexto(contratoTransformado.valorPesos) + ' Pesos';
-      console.log(contratoTransformado.valorPesosTexto);
-    }
-
-    return contratoTransformado;
   }
 }
