@@ -9,6 +9,22 @@ paths:
           description: ''
       tags:
         - App
+  /contratos-generales/{id}:
+    get:
+      operationId: ContratoGeneralController_consultarInfoContrato
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del contrato general
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      summary: Retorna información de contrato-general por ID
+      tags: &ref_0
+        - ContratoGeneral
   /contratos-generales:
     get:
       operationId: ContratoGeneralController_consultarContratos
@@ -58,22 +74,6 @@ paths:
         '200':
           description: Lista de contratos generales
       summary: Retorna información de contratos generales con filtros y paginación
-      tags: &ref_0
-        - ContratoGeneral
-  /contratos-generales/{id}:
-    get:
-      operationId: ContratoGeneralController_consultarInfoContrato
-      parameters:
-        - name: id
-          required: true
-          in: path
-          description: ID del contrato general
-          schema:
-            type: number
-      responses:
-        '200':
-          description: ''
-      summary: Retorna información de contrato-general por ID
       tags: *ref_0
   /espacios-fisicos/sedes:
     get:

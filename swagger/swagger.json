@@ -15,6 +15,31 @@
         ]
       }
     },
+    "/contratos-generales/{id}": {
+      "get": {
+        "operationId": "ContratoGeneralController_consultarInfoContrato",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del contrato general",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Retorna información de contrato-general por ID",
+        "tags": [
+          "ContratoGeneral"
+        ]
+      }
+    },
     "/contratos-generales": {
       "get": {
         "operationId": "ContratoGeneralController_consultarContratos",
@@ -86,31 +111,6 @@
           }
         },
         "summary": "Retorna información de contratos generales con filtros y paginación",
-        "tags": [
-          "ContratoGeneral"
-        ]
-      }
-    },
-    "/contratos-generales/{id}": {
-      "get": {
-        "operationId": "ContratoGeneralController_consultarInfoContrato",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID del contrato general",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Retorna información de contrato-general por ID",
         "tags": [
           "ContratoGeneral"
         ]
