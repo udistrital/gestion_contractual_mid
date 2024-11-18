@@ -2,15 +2,15 @@ import {
   Controller,
   Get,
   Query,
-  Param,
   ValidationPipe,
   HttpStatus,
   HttpException,
   Logger,
+  Param,
 } from '@nestjs/common';
 import { ContratoGeneralService } from './contrato-general.service';
-import { ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
+import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { StandardResponse } from '../interfaces/responses.interface';
 
 @Controller('contratos-generales')
