@@ -1,37 +1,85 @@
 import {
   Controller,
   Get,
-  ValidationPipe,
   Query,
+  Param,
+  ValidationPipe,
   HttpStatus,
-  HttpException, Logger, Param
+  HttpException,
+  Logger,
 } from '@nestjs/common';
 import { ContratoGeneralService } from './contrato-general.service';
-import {ApiOperation, ApiParam, ApiQuery, ApiResponse} from "@nestjs/swagger";
-import {ParametrosConsultarContratoDto} from "./dto/params.dto";
+import { ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
+import { StandardResponse } from '../interfaces/responses.interface';
 
 @Controller('contratos-generales')
 export class ContratoGeneralController {
-
   private readonly logger = new Logger(ContratoGeneralController.name);
 
-  constructor(private readonly contratoGeneralService: ContratoGeneralService) {}
+  constructor(
+    private readonly contratoGeneralService: ContratoGeneralService,
+  ) {}
 
-  @Get(':id')
+  @Get()
   @ApiOperation({
     summary:
-        'Retorna información de contrato-general por ID.',
+      'Retorna información de contratos generales con filtros y paginación',
   })
-  @ApiResponse({ status: 200, description: 'Retorna detalle de un contrato-general.' })
-  @ApiResponse({ status: 400, description: 'Error en la solicitud.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de contratos generales',
+  })
+  async consultarContratos(
+    @Query(new ValidationPipe({ transform: true }))
+    queryParams: BaseQueryParamsDto,
+  ): Promise<StandardResponse<any[]>> {
+    try {
+      const result = await this.contratoGeneralService.getAll(queryParams);
+
+      return {
+        Success: true,
+        Status: HttpStatus.OK,
+        Message: 'Contratos consultados exitosamente',
+        Data: result.Data,
+        Metadata: result.Metadata,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error en consultarContratos: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: `Error interno del servidor: ${error.message}`,
+          Data: null,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Retorna información de contrato-general por ID' })
   @ApiParam({
     name: 'id',
     type: 'number',
     description: 'ID del contrato general',
   })
-  async consultarInfoContrato(@Param(ValidationPipe) param: ParametrosConsultarContratoDto): Promise<StandardResponse<any>> {
+  async consultarInfoContrato(
+    @Param('id') id: string,
+  ): Promise<StandardResponse<any>> {
     try {
-      const result = await this.contratoGeneralService.getContratoTransformed(+param.id);
+      const result =
+        await this.contratoGeneralService.getContratoTransformed(+id);
+
       return {
         Success: true,
         Status: HttpStatus.OK,
@@ -39,22 +87,24 @@ export class ContratoGeneralController {
         Data: result,
       };
     } catch (error) {
-      this.logger.error(`Error en consultarInfoContrato: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error en consultarInfoContrato: ${error.message}`,
+        error.stack,
+      );
+
       if (error instanceof HttpException) {
-        throw new HttpException({
-          Success: false,
-          Status: HttpStatus.NOT_FOUND,
-          Message: error.message,
-          Data: null,
-        }, HttpStatus.NOT_FOUND);
+        throw error;
       }
-      throw new HttpException({
-        Success: false,
-        Status: HttpStatus.INTERNAL_SERVER_ERROR,
-        Message: `Error interno del servidor: ${error.message}`,
-        Data: null,
-      }, HttpStatus.INTERNAL_SERVER_ERROR);
+
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: `Error interno del servidor: ${error.message}`,
+          Data: null,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
-
 }
