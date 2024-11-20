@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ContratoGeneralModule } from './contrato-general/contrato-general.module';
 import { ParametroModule } from './parametro/parametro.module';
 import { EspaciosFisicosModule } from './espacios-fisicos/espacios-fisicos.module';
+import { VariablesClausulasModule } from './variables-clausulas/variables-clausulas.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EspaciosFisicosModule } from './espacios-fisicos/espacios-fisicos.modul
     ContratoGeneralModule,
     ParametroModule,
     EspaciosFisicosModule,
+    VariablesClausulasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
