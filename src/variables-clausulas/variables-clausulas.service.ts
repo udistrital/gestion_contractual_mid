@@ -1,6 +1,7 @@
-import {Injectable, Logger, NotFoundException, InternalServerErrorException} from '@nestjs/common';
+import {HttpStatus, Injectable} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
+import { StandardResponse } from 'src/interfaces/responses.interface';
 
 interface ContratoResponse {
   Status: string;
@@ -9,64 +10,81 @@ interface ContratoResponse {
 
 @Injectable()
 export class VariablesClausulasService {
-  private readonly axiosInstance: AxiosInstance;
-  private readonly logger = new Logger(VariablesClausulasService.name);
+  constructor(private configService: ConfigService) {}
 
-  constructor(private configService: ConfigService) {
-    this.axiosInstance = axios.create({
-      baseURL: this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD'),
-      timeout: 5000,
-    });
-  }
-
-  private async fetchWithRetry<T>(
-    axiosCall: () => Promise<T>,
-    retries = 3,
-    delay = 1000,
-  ): Promise<T> {
+  async dataVaribles(id: string): Promise<StandardResponse<any>> {
     try {
-      return await axiosCall();
-    } catch (error) {
-      if (retries > 0 && axios.isAxiosError(error)) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
+      const endpoint: string = this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD');
+      const url = `${endpoint}contratos-generales/${id}`;
+      const { data } = await axios.get<ContratoResponse>(url);
+
+      if (data.Data == undefined){
+        return {
+          Success: false,
+          Status: HttpStatus.NOT_FOUND,
+          Message: 'Contrato no encontrado',
+        };
       }
-      throw error;
+
+      const infoContrato = data;
+      const cdpInfo = await this.obetenerCDP(id);
+      const proveedorInfo = await this.obetenerProveedor(id);
+      const lugarEjecucionInfo = await this.obetenerLugarEjecucion(id);
+
+      const combinedData = {
+        contrato: infoContrato,
+        cdp: cdpInfo,
+        proveedor: proveedorInfo,
+        lugarEjecucion : lugarEjecucionInfo,
+      }
+
+      return {
+        Success: true,
+        Status: HttpStatus.OK,
+        Message: 'Variables de contrato encontradas',
+        Data: combinedData,
+      };
+    } catch (error) {
+      return {
+        Success: false,
+        Status: error.response?.status || 500,
+        Message: error.message || 'Error al consultar el contrato',
+      };
     }
   }
 
-  async consultarInfoContrato(id: number): Promise<any> {
+  async obetenerCDP(id: string): Promise<StandardResponse<any>> {
     try {
-      const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<ContratoResponse>(`contratos-generales/${id}`),
-      );
-
-      if (!response.data?.Data) {
-        this.logger.warn(`Respuesta inválida para el contrato ${id}`);
-        throw new NotFoundException(
-          `Contrato general con ID ${id} no encontrado o respuesta inválida`,
-        );
-      }
-
-      return response.data.Data;
+      const endpoint: string = this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD');
+      const url = `${endpoint}cdp/contrato/${id}`;
+      const { data } = await axios.get<ContratoResponse>(url);
+      return data.Data[0];
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 404) {
-          throw new NotFoundException(
-            `Contrato general con ID ${id} no encontrado`,
-          );
-        }
-        this.logger.error(
-          `Error al consultar el contrato ${id}: ${JSON.stringify(error.response?.data)}`,
-        );
-      }
-      throw new InternalServerErrorException(
-        `Error al consultar el contrato: ${error.message}`,
-      );
+      return null;
     }
   }
 
-  private async transformarVariables(){
+  async obetenerLugarEjecucion(id: string): Promise<any> {
+    try {
+      const endpoint: string = this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD');
+      const url = `${endpoint}lugares-ejecucion/contrato/${id}`;
+      const { data } = await axios.get<ContratoResponse>(url);
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }
+  
 
-  };
+  async obetenerProveedor(id: string): Promise<StandardResponse<any>> {
+    try {
+      const endpoint: string = this.configService.get<string>('ENDP_PROVEEDORES_MID');
+      const url = `${endpoint}contratistas?id=${id}071172124`;
+      const { data } = await axios.get<ContratoResponse>(url);
+      return data.Data;
+    } catch (error) {
+      return null;
+    }
+  }
+
 }
