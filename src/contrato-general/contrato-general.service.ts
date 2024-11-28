@@ -80,64 +80,6 @@ export class ContratoGeneralService {
     }
   }
 
-  private readonly UNIDADES = [
-    '', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
-    'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve'
-  ];
-
-  private readonly DECENAS = [
-    '', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'
-  ];
-
-  private readonly CENTENAS = [
-    '', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'
-  ];
-
-  private convertirGrupo(n: number): string {
-    let resultado = '';
-    if (n === 0) return '';
-    if (n === 100) return 'cien';
-    const centenas = Math.floor(n / 100);
-    if (centenas > 0) {
-      resultado += this.CENTENAS[centenas] + ' ';
-    }
-
-    const decenas = n % 100;
-    if (decenas > 0) {
-      if (decenas < 20) {
-        resultado += this.UNIDADES[decenas];
-      } else {
-        const unidades = decenas % 10;
-        const decenasPiso = Math.floor(decenas / 10);
-        if (unidades === 0) {
-          resultado += this.DECENAS[decenasPiso];
-        } else {
-          resultado += this.DECENAS[decenasPiso] + ' y ' + this.UNIDADES[unidades].toLowerCase();
-        }
-      }
-    }
-
-    return resultado.trim();
-  }
-
-  private numeroATexto(numero: number): string {
-    if (numero === 0) return 'cero';
-    if (numero < 0) return 'Menos ' + this.numeroATexto(Math.abs(numero));
-
-    let resultado = '';
-    let billones = Math.floor(numero / 1000000000000);
-    let millones = Math.floor((numero % 1000000000000) / 1000000);
-    let miles = Math.floor((numero % 1000000) / 1000);
-    let resto = numero % 1000;
-
-    if (billones > 0) {resultado += this.convertirGrupo(billones) + ' billon' + (billones > 1 ? 'es ' : ' ');}
-    if (millones > 0) {resultado += this.convertirGrupo(millones) + ' millon' + (millones > 1 ? 'es ' : ' ');}
-    if (miles > 0) {resultado += this.convertirGrupo(miles) + ' mil ';}
-    if (resto > 0) {resultado += this.convertirGrupo(resto);}
-
-    return resultado.trim();
-  }
-
   async consultarInfoContrato(id: number): Promise<any> {
     try {
       const response = await this.fetchWithRetry(() =>
@@ -228,15 +170,11 @@ export class ContratoGeneralService {
           }
         });
 
-        // Agregar estado
-        const estado = await this.consultarEstadoContrato(contratoRaw.id);
-        if (estado !== null) {
-          contratoTransformado.estado = estado;
-        }
-
-        if (contratoTransformado.valorPesos) {
-          contratoTransformado.valorPesosTexto = this.numeroATexto(contratoTransformado.valorPesos) + ' Pesos';
-          console.log(contratoTransformado.valorPesosTexto);
+        // Arreglar para cuando no existe numero de documento
+        // Agregar contratista
+        const contratista_nombre = await this.consultarProveedor(contratoRaw.contratista.numero_documento);
+        if (contratoRaw.contratista.numero_documento !== null) {
+          contratoTransformado.contratista.nombre = contratista_nombre;
         }
 
         return contratoTransformado;
@@ -250,10 +188,21 @@ export class ContratoGeneralService {
     queryParams: BaseQueryParamsDto,
   ): Promise<PaginatedResponse<any>> {
     try {
+      const baseUrl = 'contratos-generales';
+      const fields = 'vigencia,tipoContratoId,contratista,estados';
+      const include = 'estados,contratista';
+      const queryBase = { "estados.actual": true };
+
+      const queryCombined = queryParams.queryFilter
+        ? { ...queryBase, ...JSON.parse(`{${queryParams.queryFilter}}`) }
+        : queryBase;
+
+      const query = JSON.stringify(queryCombined);
+
+      const url = `${baseUrl}?fields=${encodeURIComponent(fields)}&query=${encodeURIComponent(query)}&include=${encodeURIComponent(include)}`;
+
       const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<PaginatedResponse<any>>('contratos-generales', {
-          params: queryParams,
-        }),
+        this.axiosInstance.get<PaginatedResponse<any>>(url),
       );
 
       if (!response.data?.Data) {
@@ -302,7 +251,6 @@ export class ContratoGeneralService {
   async getContratoTransformed(id: number): Promise<any> {
     try {
       const contratoRaw = await this.consultarInfoContrato(id);
-      console.log(this.numeroATexto(35740150));
       const cacheParametros = await this.cargarCacheParametros();
       const [contratoTransformado] = await this.transformarContratos(
         [contratoRaw],
@@ -318,22 +266,13 @@ export class ContratoGeneralService {
     }
   }
 
-  private async consultarEstadoContrato(id: number): Promise<string | null> {
+  private async consultarProveedor(id: number): Promise<string | null> {
     try {
-      const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<EstadoContratoResponse>(`estados-contrato/${id}`),
-      );
-
-      if (!response?.data) {
-        this.logger.warn(`Estado no encontrado para el contrato ${id}`);
-        return null;
-      }
-
-      return response.data.motivo;
+      const endpoint: string = this.configService.get<string>('ENDP_PROVEEDORES_MID');
+      const url = `${endpoint}contratistas?id=1071172124`;
+      const { data } = await axios.get<ContratoResponse>(url);
+      return data.Data.proveedor.nombre_completo_proveedor;
     } catch (error) {
-      this.logger.warn(
-        `Error al consultar estado del contrato ${id}: ${error.message}`,
-      );
       return null;
     }
   }
