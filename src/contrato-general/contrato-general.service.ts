@@ -170,12 +170,16 @@ export class ContratoGeneralService {
           }
         });
 
-        // Arreglar para cuando no existe numero de documento
         // Agregar contratista
-        const contratista_nombre = await this.consultarProveedor(contratoRaw.contratista.numero_documento);
-        if (contratoRaw.contratista.numero_documento !== null) {
-          contratoTransformado.contratista.nombre = contratista_nombre;
+        const numeroDocumento = contratoRaw.contratista?.numero_documento ?? 'Desconocido';
+
+        if (numeroDocumento !== 'Desconocido') {
+          const contratistaNombre = await this.consultarProveedor(numeroDocumento);
+          contratoTransformado.contratista.nombre = contratistaNombre;
+        } else {
+          console.warn('El contratista no tiene un número de documento válido:', contratoRaw.contratista);
         }
+
 
         return contratoTransformado;
       }),
@@ -192,18 +196,25 @@ export class ContratoGeneralService {
       const fields = 'vigencia,tipoContratoId,contratista,estados';
       const include = 'estados,contratista';
       const queryBase = { "estados.actual": true };
+      const queryFilter = queryParams.queryFilter ? JSON.parse(`{${queryParams.queryFilter}}`) : {};
 
-      const queryCombined = queryParams.queryFilter
-        ? { ...queryBase, ...JSON.parse(`{${queryParams.queryFilter}}`) }
-        : queryBase;
+      const query = { ...queryBase, ...queryFilter };
 
-      const query = JSON.stringify(queryCombined);
+      const params = {
+        fields,
+        query: JSON.stringify(query),
+        include,
+        limit: queryParams.limit,
+        offset: queryParams.offset,
+      };
 
-      const url = `${baseUrl}?fields=${encodeURIComponent(fields)}&query=${encodeURIComponent(query)}&include=${encodeURIComponent(include)}`;
-
+      const url = `${baseUrl}?${Object.entries(params).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&')}`;
+      
       const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<PaginatedResponse<any>>(url),
+        this.axiosInstance.get<PaginatedResponse<any>>(baseUrl, { params })
       );
+
+
 
       if (!response.data?.Data) {
         this.logger.warn('Respuesta inválida al consultar contratos generales');
@@ -269,7 +280,7 @@ export class ContratoGeneralService {
   private async consultarProveedor(id: number): Promise<string | null> {
     try {
       const endpoint: string = this.configService.get<string>('ENDP_PROVEEDORES_MID');
-      const url = `${endpoint}contratistas?id=1071172124`;
+      const url = `${endpoint}contratistas?id=${id}`;
       const { data } = await axios.get<ContratoResponse>(url);
       return data.Data.proveedor.nombre_completo_proveedor;
     } catch (error) {
