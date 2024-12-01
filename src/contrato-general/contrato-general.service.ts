@@ -62,6 +62,8 @@ export class ContratoGeneralService {
     temaGastoInversionId: 126,
     medioPogoId: 127,
     unidadEjecutoraId: 7,
+    estadoContratoId: 137,
+    tipoPersonaId: 132,
   } as const;
 
   private async fetchWithRetry<T>(
@@ -156,11 +158,10 @@ export class ContratoGeneralService {
     contratos: any[],
     cacheParametros: Map<number, Map<number, string>>,
   ): Promise<any[]> {
-    const contratosConEstado = await Promise.all(
+    const contratosNormales = await Promise.all(
       contratos.map(async (contratoRaw) => {
         const contratoTransformado = { ...contratoRaw };
 
-        // Transformación existente de parámetros
         Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
           if (contratoRaw[key] != null) {
             const parametrosMap = cacheParametros.get(tipoParametroId);
@@ -170,22 +171,37 @@ export class ContratoGeneralService {
           }
         });
 
+        if (contratoTransformado.estados) {
+          const estadoParametroMap = cacheParametros.get(this.parameterMap.estadoContratoId);
+          if (estadoParametroMap && contratoTransformado.estados.estado_parametro_id != null) {
+            contratoTransformado.estados.estado_parametro_id =
+              estadoParametroMap.get(contratoTransformado.estados.estado_parametro_id) ||
+              contratoTransformado.estados.estado_parametro_id;
+          }
+        }
+
+        if (contratoTransformado.contratista) {
+          const tipoPersonaMap = cacheParametros.get(this.parameterMap.tipoPersonaId);
+          if (tipoPersonaMap && contratoTransformado.contratista.tipo_persona_id != null) {
+            contratoTransformado.contratista.tipo_persona_id =
+              tipoPersonaMap.get(contratoTransformado.contratista.tipo_persona_id) ||
+              contratoTransformado.contratista.tipo_persona_id;
+          }
+        }
+
         // Agregar contratista
         const numeroDocumento = contratoRaw.contratista?.numero_documento ?? 'Desconocido';
 
         if (numeroDocumento !== 'Desconocido') {
           const contratistaNombre = await this.consultarProveedor(numeroDocumento);
           contratoTransformado.contratista.nombre = contratistaNombre;
-        } else {
-          console.warn('El contratista no tiene un número de documento válido:', contratoRaw.contratista);
         }
-
 
         return contratoTransformado;
       }),
     );
 
-    return contratosConEstado;
+    return contratosNormales;
   }
 
   async getAll(
@@ -209,7 +225,9 @@ export class ContratoGeneralService {
       };
 
       const url = `${baseUrl}?${Object.entries(params).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&')}`;
-      
+
+      console.log(url);
+
       const response = await this.fetchWithRetry(() =>
         this.axiosInstance.get<PaginatedResponse<any>>(baseUrl, { params })
       );
