@@ -4,13 +4,6 @@ import { Type } from 'class-transformer';
 
 export class BaseQueryParamsDto {
   @ApiPropertyOptional({
-    description: 'Campos a retornar (separados por comas)',
-  })
-  @IsOptional()
-  @IsString()
-  fields?: string;
-
-  @ApiPropertyOptional({
     description: 'Campo por el cual ordenar',
   })
   @IsOptional()
@@ -45,10 +38,10 @@ export class BaseQueryParamsDto {
   @Min(0)
   offset?: number;
 
-  @ApiPropertyOptional({
-    description: 'Filtros dinámicos en formato JSON',
+@ApiPropertyOptional({
+    description: 'Filtros aplicados para el crud'
   })
   @IsOptional()
   @IsString()
-  query?: string;
+  queryFilter?: string;
 }
