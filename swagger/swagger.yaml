@@ -31,12 +31,6 @@ paths:
     get:
       operationId: ContratoGeneralController_consultarContratos
       parameters:
-        - name: fields
-          required: false
-          in: query
-          description: Campos a retornar (separados por comas)
-          schema:
-            type: string
         - name: sortBy
           required: false
           in: query
@@ -66,10 +60,10 @@ paths:
           schema:
             minimum: 0
             type: number
-        - name: query
+        - name: queryFilter
           required: false
           in: query
-          description: Filtros dinámicos en formato JSON
+          description: Filtros aplicados para el crud
           schema:
             type: string
       responses:

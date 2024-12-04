@@ -62,6 +62,8 @@ export class ContratoGeneralService {
     temaGastoInversionId: 126,
     medioPogoId: 127,
     unidadEjecutoraId: 7,
+    estadoContratoId: 137,
+    tipoPersonaId: 132,
   } as const;
 
   private async fetchWithRetry<T>(
@@ -156,11 +158,10 @@ export class ContratoGeneralService {
     contratos: any[],
     cacheParametros: Map<number, Map<number, string>>,
   ): Promise<any[]> {
-    const contratosConEstado = await Promise.all(
+    const contratosNormales = await Promise.all(
       contratos.map(async (contratoRaw) => {
         const contratoTransformado = { ...contratoRaw };
 
-        // Transformación existente de parámetros
         Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
           if (contratoRaw[key] != null) {
             const parametrosMap = cacheParametros.get(tipoParametroId);
@@ -170,28 +171,68 @@ export class ContratoGeneralService {
           }
         });
 
-        // Agregar estado
-        const estado = await this.consultarEstadoContrato(contratoRaw.id);
-        if (estado !== null) {
-          contratoTransformado.estado = estado;
+        if (contratoTransformado.estados) {
+          const estadoParametroMap = cacheParametros.get(this.parameterMap.estadoContratoId);
+          if (estadoParametroMap && contratoTransformado.estados.estado_parametro_id != null) {
+            contratoTransformado.estados.estado_parametro_id =
+              estadoParametroMap.get(contratoTransformado.estados.estado_parametro_id) ||
+              contratoTransformado.estados.estado_parametro_id;
+          }
+        }
+
+        if (contratoTransformado.contratista) {
+          const tipoPersonaMap = cacheParametros.get(this.parameterMap.tipoPersonaId);
+          if (tipoPersonaMap && contratoTransformado.contratista.tipo_persona_id != null) {
+            contratoTransformado.contratista.tipo_persona_id =
+              tipoPersonaMap.get(contratoTransformado.contratista.tipo_persona_id) ||
+              contratoTransformado.contratista.tipo_persona_id;
+          }
+        }
+
+        // Agregar contratista
+        const numeroDocumento = contratoRaw.contratista?.numero_documento ?? 'Desconocido';
+
+        if (numeroDocumento !== 'Desconocido') {
+          const contratistaNombre = await this.consultarProveedor(numeroDocumento);
+          contratoTransformado.contratista.nombre = contratistaNombre;
         }
 
         return contratoTransformado;
       }),
     );
 
-    return contratosConEstado;
+    return contratosNormales;
   }
 
   async getAll(
     queryParams: BaseQueryParamsDto,
   ): Promise<PaginatedResponse<any>> {
     try {
+      const baseUrl = 'contratos-generales';
+      const fields = 'vigencia,tipoContratoId,contratista,estados';
+      const include = 'estados,contratista';
+      const queryBase = { "estados.actual": true };
+      const queryFilter = queryParams.queryFilter ? JSON.parse(`{${queryParams.queryFilter}}`) : {};
+
+      const query = { ...queryBase, ...queryFilter };
+
+      const params = {
+        fields,
+        query: JSON.stringify(query),
+        include,
+        limit: queryParams.limit,
+        offset: queryParams.offset,
+      };
+
+      const url = `${baseUrl}?${Object.entries(params).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&')}`;
+
+      console.log(url);
+
       const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<PaginatedResponse<any>>('contratos-generales', {
-          params: queryParams,
-        }),
+        this.axiosInstance.get<PaginatedResponse<any>>(baseUrl, { params })
       );
+
+
 
       if (!response.data?.Data) {
         this.logger.warn('Respuesta inválida al consultar contratos generales');
@@ -254,22 +295,13 @@ export class ContratoGeneralService {
     }
   }
 
-  private async consultarEstadoContrato(id: number): Promise<string | null> {
+  private async consultarProveedor(id: number): Promise<string | null> {
     try {
-      const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<EstadoContratoResponse>(`estados-contrato/${id}`),
-      );
-
-      if (!response?.data) {
-        this.logger.warn(`Estado no encontrado para el contrato ${id}`);
-        return null;
-      }
-
-      return response.data.motivo;
+      const endpoint: string = this.configService.get<string>('ENDP_PROVEEDORES_MID');
+      const url = `${endpoint}contratistas?id=${id}`;
+      const { data } = await axios.get<ContratoResponse>(url);
+      return data.Data.proveedor.nombre_completo_proveedor;
     } catch (error) {
-      this.logger.warn(
-        `Error al consultar estado del contrato ${id}: ${error.message}`,
-      );
       return null;
     }
   }
