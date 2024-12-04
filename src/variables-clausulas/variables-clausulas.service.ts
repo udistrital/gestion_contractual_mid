@@ -175,7 +175,7 @@ export class VariablesClausulasService {
     return variablesTransformadas;
   }
 
-  async dataVaribles(id: string): Promise<StandardResponse<variablesResponse>> {
+  async dataVaribles(id: string, doc: string): Promise<StandardResponse<variablesResponse>> {
     try {
       const endpoint: string = this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD');
       const url = `${endpoint}contratos-generales/${id}`;
@@ -191,7 +191,7 @@ export class VariablesClausulasService {
 
       const infoContrato = data.Data;
       const cdpInfo = await this.obetenerCDP(id);
-      const proveedorInfo = await this.obetenerProveedor(id);
+      const proveedorInfo = await this.obetenerProveedor(doc);
       const lugarEjecucionInfo = await this.obetenerLugarEjecucion(id);
 
       let filteredResponse: variablesResponse = {
@@ -266,10 +266,10 @@ export class VariablesClausulasService {
     }
   }
 
-  async obetenerProveedor(id: string): Promise<ProveedorResponse> {
+  async obetenerProveedor(doc: string): Promise<ProveedorResponse> {
     try {
       const endpoint: string = this.configService.get<string>('ENDP_PROVEEDORES_MID');
-      const url = `${endpoint}contratistas?id=${id}071172124`;
+      const url = `${endpoint}contratistas?id=${doc}`;
       const { data } = await axios.get<ContratoResponse>(url);
       return data.Data;
     } catch (error) {

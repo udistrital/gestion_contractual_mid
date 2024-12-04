@@ -20,15 +20,16 @@ export class VariablesClausulasController {
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   async encontrarContratista(
     @Query('id') id: string,
+    @Query('doc') doc: string,
   ): Promise<StandardResponse<any>> {
-    if (!id) {
+    if (!id || !doc) {
       return Promise.resolve({
         Success: false,
         Status: HttpStatus.BAD_REQUEST,
         Message: 'El id es requerido',
       });
     }
-    const result = await this.variablesClausulasService.dataVaribles(id);
+    const result = await this.variablesClausulasService.dataVaribles(id, doc);
 
     if (!result.Success) {
       throw new HttpException(

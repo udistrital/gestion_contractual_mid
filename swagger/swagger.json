@@ -296,6 +296,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "doc",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {

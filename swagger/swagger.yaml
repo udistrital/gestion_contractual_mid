@@ -191,6 +191,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: doc
+          required: true
+          in: query
+          schema:
+            type: string
       responses:
         '200':
           description: Contrato encontrado exitosamente
