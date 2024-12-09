@@ -55,3 +55,8 @@ export interface EstadoContratoResponse {
   fecha_creacion: string | null;
   fecha_modificacion: string;
 }
+
+export interface UsuarioResponse {
+  Id: number,
+  NombreCompleto: string,
+}
