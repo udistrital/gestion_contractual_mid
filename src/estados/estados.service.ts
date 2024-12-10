@@ -48,6 +48,7 @@ export class EstadosService {
 
   private readonly parameterMap = {
     estadoContratoId: 137,
+    estadoInternoId: 141,
   } as const;
 
   private async fetchWithRetry<T>(
@@ -131,12 +132,19 @@ export class EstadosService {
               estadoParametroMap.get(contratoTransformado.estados.estado_parametro_id) ||
               contratoTransformado.estados.estado_parametro_id;
           }
+          const estadoInternoParametroMap = cacheParametros.get(this.parameterMap.estadoInternoId);
+          if (estadoInternoParametroMap && contratoTransformado.estados.estado_interno_parametro_id != null) {
+            contratoTransformado.estados.estado_interno_parametro_id =
+              estadoInternoParametroMap.get(contratoTransformado.estados.estado_interno_parametro_id) ||
+              contratoTransformado.estados.estado_interno_parametro_id;
+          }
         }
 
-        // Agregar nombre de usuario
-        const usuarioId = contratoRaw.estados?.usuario_id ?? 'Desconocido';
 
-        if (usuarioId !== 'Desconocido') {
+        // Agregar nombre de usuario
+        const usuarioId = contratoRaw.estados?.usuario_id ?? null;
+
+        if (usuarioId !== null) {
           const usuario = await this.consultarUsuario(usuarioId);
           contratoTransformado.estados.nombre_usuario = usuario.NombreCompleto;
         }
@@ -147,7 +155,7 @@ export class EstadosService {
 
     return contratosNormales;
   }
-  
+
   async getAll(
     queryParams: BaseQueryParamsDto,
   ): Promise<PaginatedResponse<any>> {
