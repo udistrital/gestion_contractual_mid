@@ -60,3 +60,12 @@ export interface UsuarioResponse {
   Id: number,
   NombreCompleto: string,
 }
+
+export interface ParametroResponse {
+  Status: string;
+  Data: Array<{
+    Id: number;
+    Nombre: string;
+    [key: string]: any;
+  }>;
+}
