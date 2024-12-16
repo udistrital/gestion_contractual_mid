@@ -226,8 +226,6 @@ export class ContratoGeneralService {
 
       const url = `${baseUrl}?${Object.entries(params).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&')}`;
 
-      console.log(url);
-
       const response = await this.fetchWithRetry(() =>
         this.axiosInstance.get<PaginatedResponse<any>>(baseUrl, { params })
       );
