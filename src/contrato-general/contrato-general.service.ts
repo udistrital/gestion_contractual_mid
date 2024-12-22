@@ -8,7 +8,6 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { chunk, flatten } from 'lodash';
 import {
-  EstadoContratoResponse,
   PaginatedResponse,
   ResponseMetadata,
 } from '../interfaces/responses.interface';
@@ -47,23 +46,23 @@ export class ContratoGeneralService {
   }
 
   private readonly parameterMap = {
-    tipoCompromisoId: 111,
-    tipoContratoId: 112,
-    perfilContratistaId: 113,
-    tipologiaEspecificaId: 114,
-    modalidadSeleccionId: 115,
-    regimenContratacionId: 116,
-    procedimientoId: 117,
-    claseContratistaId: 120,
-    tipoMonedaId: 122,
-    tipoGastoId: 123,
-    origenRecursosId: 124,
-    origenPresupuestosId: 125,
-    temaGastoInversionId: 126,
-    medioPogoId: 127,
-    unidadEjecutoraId: 7,
-    estadoContratoId: 137,
-    tipoPersonaId: 132,
+    tipo_compromiso_id: 111,
+    tipo_contrato_id: 112,
+    perfil_contratista_id: 113,
+    tipologia_especifica_id: 114,
+    modalidad_seleccion_id: 115,
+    regimen_contratacion_id: 116,
+    procedimiento_id: 117,
+    clase_contratista_id: 120,
+    tipo_moneda_id: 122,
+    tipo_gasto_Id: 123,
+    origen_recursos_id: 124,
+    origen_presupuestos_id: 125,
+    tema_gasto_inversion_id: 126,
+    medio_pogo_id: 127,
+    unidad_ejecutora_id: 7,
+    estado_contrato_id: 137,
+    tipo_persona_id: 132,
   } as const;
 
   private async fetchWithRetry<T>(
@@ -172,28 +171,42 @@ export class ContratoGeneralService {
         });
 
         if (contratoTransformado.estados) {
-          const estadoParametroMap = cacheParametros.get(this.parameterMap.estadoContratoId);
-          if (estadoParametroMap && contratoTransformado.estados.estado_parametro_id != null) {
+          const estadoParametroMap = cacheParametros.get(
+            this.parameterMap.estado_contrato_id,
+          );
+          if (
+            estadoParametroMap &&
+            contratoTransformado.estados.estado_parametro_id != null
+          ) {
             contratoTransformado.estados.estado_parametro_id =
-              estadoParametroMap.get(contratoTransformado.estados.estado_parametro_id) ||
-              contratoTransformado.estados.estado_parametro_id;
+              estadoParametroMap.get(
+                contratoTransformado.estados.estado_parametro_id,
+              ) || contratoTransformado.estados.estado_parametro_id;
           }
         }
 
         if (contratoTransformado.contratista) {
-          const tipoPersonaMap = cacheParametros.get(this.parameterMap.tipoPersonaId);
-          if (tipoPersonaMap && contratoTransformado.contratista.tipo_persona_id != null) {
+          const tipoPersonaMap = cacheParametros.get(
+            this.parameterMap.tipo_persona_id,
+          );
+          if (
+            tipoPersonaMap &&
+            contratoTransformado.contratista.tipo_persona_id != null
+          ) {
             contratoTransformado.contratista.tipo_persona_id =
-              tipoPersonaMap.get(contratoTransformado.contratista.tipo_persona_id) ||
-              contratoTransformado.contratista.tipo_persona_id;
+              tipoPersonaMap.get(
+                contratoTransformado.contratista.tipo_persona_id,
+              ) || contratoTransformado.contratista.tipo_persona_id;
           }
         }
 
         // Agregar contratista
-        const numeroDocumento = contratoRaw.contratista?.numero_documento ?? 'Desconocido';
+        const numeroDocumento =
+          contratoRaw.contratista?.numero_documento ?? 'Desconocido';
 
         if (numeroDocumento !== 'Desconocido') {
-          const contratistaNombre = await this.consultarProveedor(numeroDocumento);
+          const contratistaNombre =
+            await this.consultarProveedor(numeroDocumento);
           contratoTransformado.contratista.nombre = contratistaNombre;
         }
 
@@ -209,10 +222,12 @@ export class ContratoGeneralService {
   ): Promise<PaginatedResponse<any>> {
     try {
       const baseUrl = 'contratos-generales';
-      const fields = 'vigencia,tipoContratoId,contratista,estados';
+      const fields = 'vigencia,tipo_contrato_id,contratista,estados';
       const include = 'estados,contratista';
-      const queryBase = { "estados.actual": true };
-      const queryFilter = queryParams.queryFilter ? JSON.parse(`{${queryParams.queryFilter}}`) : {};
+      const queryBase = { 'estados.actual': true };
+      const queryFilter = queryParams.queryFilter
+        ? JSON.parse(`{${queryParams.queryFilter}}`)
+        : {};
 
       const query = { ...queryBase, ...queryFilter };
 
@@ -220,17 +235,19 @@ export class ContratoGeneralService {
         fields,
         query: JSON.stringify(query),
         include,
-        limit: queryParams.limit,
-        offset: queryParams.offset,
+        limit: queryParams.limit ?? 10,
+        offset: queryParams.offset ?? 0,
       };
 
-      const url = `${baseUrl}?${Object.entries(params).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&')}`;
+      const url = `${baseUrl}?${Object.entries(params)
+        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+        .join('&')}`;
+
+      this.logger.log(`Consultando contratos generales en ${url}`);
 
       const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<PaginatedResponse<any>>(baseUrl, { params })
+        this.axiosInstance.get<PaginatedResponse<any>>(baseUrl, { params }),
       );
-
-
 
       if (!response.data?.Data) {
         this.logger.warn('Respuesta inválida al consultar contratos generales');
@@ -276,6 +293,7 @@ export class ContratoGeneralService {
   }
 
   async getContratoTransformed(id: number): Promise<any> {
+    this.logger.log(`Consultando contrato transformado para ID ${id}`);
     try {
       const contratoRaw = await this.consultarInfoContrato(id);
       const cacheParametros = await this.cargarCacheParametros();
@@ -295,11 +313,18 @@ export class ContratoGeneralService {
 
   private async consultarProveedor(id: number): Promise<string | null> {
     try {
-      const endpoint: string = this.configService.get<string>('ENDP_PROVEEDORES_MID');
+      const endpoint: string = this.configService.get<string>(
+        'ENDP_PROVEEDORES_MID',
+      );
+      if (!endpoint) {
+        this.logger.error('No se ha configurado el endpoint de proveedores');
+        throw new Error('No se ha configurado el endpoint de proveedores');
+      }
       const url = `${endpoint}contratistas?id=${id}`;
       const { data } = await axios.get<ContratoResponse>(url);
       return data.Data.proveedor.nombre_completo_proveedor;
     } catch (error) {
+      console.log('Error en consultarProveedor:', error);
       return null;
     }
   }

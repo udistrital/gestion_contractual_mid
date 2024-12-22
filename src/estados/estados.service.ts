@@ -27,15 +27,31 @@ export class EstadosService {
 
   constructor(private configService: ConfigService) {
     const timeout = 5000;
-    this.axiosInstance = this.createAxiosInstance('ENDP_GESTION_CONTRACTUAL_CRUD', timeout);
-    this.parametrosAxiosInstance = this.createAxiosInstance('ENDP_PARAMETROS_CRUD', timeout);
+    this.axiosInstance = this.createAxiosInstance(
+      'ENDP_GESTION_CONTRACTUAL_CRUD',
+      timeout,
+    );
+    this.parametrosAxiosInstance = this.createAxiosInstance(
+      'ENDP_PARAMETROS_CRUD',
+      timeout,
+    );
   }
 
-  private createAxiosInstance(baseUrlKey: string, timeout: number): AxiosInstance {
-    return axios.create({baseURL: this.configService.get<string>(baseUrlKey), timeout});
+  private createAxiosInstance(
+    baseUrlKey: string,
+    timeout: number,
+  ): AxiosInstance {
+    return axios.create({
+      baseURL: this.configService.get<string>(baseUrlKey),
+      timeout,
+    });
   }
 
-  private async fetchWithRetry<T>(axiosCall: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  private async fetchWithRetry<T>(
+    axiosCall: () => Promise<T>,
+    retries = 3,
+    delay = 1000,
+  ): Promise<T> {
     try {
       return await axiosCall();
     } catch (error) {
@@ -47,8 +63,9 @@ export class EstadosService {
     }
   }
 
-  // Obtener todos los parametros por tipo de parametro
-  private async obtenerParametrosPorTipo(tipoParametroId: number): Promise<Map<number, string>> {
+  private async obtenerParametrosPorTipo(
+    tipoParametroId: number,
+  ): Promise<Map<number, string>> {
     try {
       const response = await this.fetchWithRetry(() =>
         this.parametrosAxiosInstance.get<ParametroResponse>(
@@ -58,15 +75,20 @@ export class EstadosService {
       if (response.data.Status !== '200' || !response.data.Data) {
         throw new Error('Respuesta inválida del servidor de parámetros');
       }
-      return new Map(response.data.Data.map((param) => [param.Id, param.Nombre]));
+      return new Map(
+        response.data.Data.map((param) => [param.Id, param.Nombre]),
+      );
     } catch (error) {
-      this.logger.error(`Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`);
+      this.logger.error(
+        `Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`,
+      );
       throw error;
     }
   }
 
-  // Obtener todos los id's y nombres de los estados generales e internos por el tipo de parametro
-  private async obtenerEstadosPorTipoParametro(): Promise<Map<number, Map<number, string>>> {
+  private async obtenerEstadosPorTipoParametro(): Promise<
+    Map<number, Map<number, string>>
+  > {
     const estadosPorTipoParametro = new Map<number, Map<number, string>>();
     await Promise.all(
       Object.values(this.idsTipoParametro).map(async (tipoParametroId) => {
@@ -77,8 +99,6 @@ export class EstadosService {
     return estadosPorTipoParametro;
   }
 
-  // Reemplaza los ids de los estados por el nombre del parametro
-  // Agrega el nombre del usuario por id
   private async transformarEstados(
     estados: any[],
     estadosPorTipoParametro: Map<number, Map<number, string>>,
@@ -87,24 +107,39 @@ export class EstadosService {
       estados.map(async (estado) => {
         const estadoTransformado = { ...estado };
 
-        const estadosGenerales = estadosPorTipoParametro.get(this.idsTipoParametro.estadosGenerales);
-        if (estadosGenerales && estadoTransformado.estado_parametro_id != null) {
+        const estadosGenerales = estadosPorTipoParametro.get(
+          this.idsTipoParametro.estadosGenerales,
+        );
+        if (
+          estadosGenerales &&
+          estadoTransformado.estado_parametro_id != null
+        ) {
           estadoTransformado.estado_parametro_id =
-          estadosGenerales.get(estadoTransformado.estado_parametro_id) ||
+            estadosGenerales.get(estadoTransformado.estado_parametro_id) ||
             estadoTransformado.estado_parametro_id;
         }
 
-        const estadosInternos = estadosPorTipoParametro.get(this.idsTipoParametro.estadosInternos);
-        if (estadosInternos && estadoTransformado.estado_interno_parametro_id != null) {
+        const estadosInternos = estadosPorTipoParametro.get(
+          this.idsTipoParametro.estadosInternos,
+        );
+        if (
+          estadosInternos &&
+          estadoTransformado.estado_interno_parametro_id != null
+        ) {
           estadoTransformado.estado_interno_parametro_id =
-          estadosInternos.get(estadoTransformado.estado_interno_parametro_id) ||
-            estadoTransformado.estado_interno_parametro_id;   
+            estadosInternos.get(
+              estadoTransformado.estado_interno_parametro_id,
+            ) || estadoTransformado.estado_interno_parametro_id;
         }
-        
+
         // Agregar nombre de usuario
         const usuarioId = estado?.usuario_id ?? null;
         if (usuarioId !== null) {
           const usuario = await this.consultarUsuario(usuarioId);
+          if (!usuario) {
+            this.logger.error('Error al consultar el usuario:', usuarioId);
+            throw new Error('Error al consultar el terceros CRUD');
+          }
           estadoTransformado.nombre_usuario = usuario.NombreCompleto;
         }
         return estadoTransformado;
@@ -114,10 +149,20 @@ export class EstadosService {
 
   private async consultarUsuario(id: number): Promise<UsuarioResponse> {
     try {
-      const endpoint: string = this.configService.get<string>('ENDP_TERCEROS_CRUD');
-      const { data } = await axios.get<UsuarioResponse>(`${endpoint}tercero/${id}`);
+      const endpoint: string =
+        this.configService.get<string>('ENDP_TERCEROS_CRUD');
+
+      if (!endpoint) {
+        this.logger.error('No se encontró la URL del servicio de terceros');
+        throw new Error('No se encontró la URL del servicio de terceros');
+      }
+
+      const { data } = await axios.get<UsuarioResponse>(
+        `${endpoint}tercero/${id}`,
+      );
       return data;
     } catch (error) {
+      this.logger.error('Error al consultar el usuario:', error);
       return null;
     }
   }
@@ -126,30 +171,39 @@ export class EstadosService {
     queryParams: BaseQueryParamsDto,
   ): Promise<PaginatedResponse<any>> {
     try {
-      const queryFilter = queryParams.queryFilter ? JSON.parse(`{${queryParams.queryFilter}}`) : {};
-      let params = {
+      const queryFilter = queryParams.queryFilter
+        ? JSON.parse(`{${queryParams.queryFilter}}`)
+        : {};
+      const params = {
         sortBy: queryParams.sortBy,
         orderBy: queryParams.orderBy,
         limit: queryParams.limit,
         offset: queryParams.offset,
-        query: JSON.stringify({ ...queryFilter }), 
-      }; 
+        query: JSON.stringify({ ...queryFilter }),
+      };
 
       const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<PaginatedResponse<any>>('estados-contrato', { params })
+        this.axiosInstance.get<PaginatedResponse<any>>('estados-contrato', {
+          params,
+        }),
       );
 
       if (!response.data?.Data) {
-        this.logger.warn('Respuesta inválida al consultar los estados de los contratos');
+        this.logger.warn(
+          'Respuesta inválida al consultar los estados de los contratos',
+        );
         throw new NotFoundException('Estados de los contratos no encontrados');
       }
 
-      const estadosPorTipoParametro = await this.obtenerEstadosPorTipoParametro();
+      const estadosPorTipoParametro =
+        await this.obtenerEstadosPorTipoParametro();
 
       const BATCH_SIZE = 25; // Reducido de 50 a 25 por las llamadas adicionales
       const batches = chunk(response.data.Data, BATCH_SIZE);
       const results = await Promise.all(
-        batches.map((batch) => this.transformarEstados(batch, estadosPorTipoParametro)),
+        batches.map((batch) =>
+          this.transformarEstados(batch, estadosPorTipoParametro),
+        ),
       );
 
       const metadata: ResponseMetadata = response.data.Metadata || {
