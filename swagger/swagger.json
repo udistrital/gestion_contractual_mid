@@ -276,57 +276,22 @@
         ]
       }
     },
-    "/estados": {
+    "/variables-clausulas": {
       "get": {
-        "operationId": "EstadosController_consultarContratos",
+        "operationId": "VariablesClausulasController_encontrarContratista",
         "parameters": [
           {
-            "name": "sortBy",
-            "required": false,
+            "name": "id",
+            "required": true,
             "in": "query",
-            "description": "Campo por el cual ordenar",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "orderBy",
-            "required": false,
+            "name": "doc",
+            "required": true,
             "in": "query",
-            "description": "Dirección del ordenamiento",
-            "schema": {
-              "enum": [
-                "ASC",
-                "DESC"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Número de registros a retornar",
-            "schema": {
-              "minimum": 0,
-              "type": "number"
-            }
-          },
-          {
-            "name": "offset",
-            "required": false,
-            "in": "query",
-            "description": "Número de registros a saltar",
-            "schema": {
-              "minimum": 0,
-              "type": "number"
-            }
-          },
-          {
-            "name": "queryFilter",
-            "required": false,
-            "in": "query",
-            "description": "Filtros aplicados para el crud",
             "schema": {
               "type": "string"
             }
@@ -334,12 +299,21 @@
         ],
         "responses": {
           "200": {
-            "description": "Lista de contratos generales"
+            "description": "Contrato encontrado exitosamente"
+          },
+          "400": {
+            "description": "Solicitud incorrecta"
+          },
+          "404": {
+            "description": "Contrato no encontrado"
+          },
+          "500": {
+            "description": "Error interno del servidor"
           }
         },
-        "summary": "Retorna información sobre el estado de los contratos",
+        "summary": "Consulta las variables del Contrato para las clausulas",
         "tags": [
-          "Estados"
+          "VariablesClausulas"
         ]
       }
     }
