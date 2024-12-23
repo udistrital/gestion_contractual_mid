@@ -176,6 +176,51 @@ paths:
                     example: No se encontraron dependencias
       summary: Obtener dependencias por sede
       tags: *ref_1
+  /estados:
+    get:
+      operationId: EstadosController_consultarContratos
+      parameters:
+        - name: sortBy
+          required: false
+          in: query
+          description: Campo por el cual ordenar
+          schema:
+            type: string
+        - name: orderBy
+          required: false
+          in: query
+          description: Dirección del ordenamiento
+          schema:
+            enum:
+              - ASC
+              - DESC
+            type: string
+        - name: limit
+          required: false
+          in: query
+          description: Número de registros a retornar
+          schema:
+            minimum: 0
+            type: number
+        - name: offset
+          required: false
+          in: query
+          description: Número de registros a saltar
+          schema:
+            minimum: 0
+            type: number
+        - name: queryFilter
+          required: false
+          in: query
+          description: Filtros aplicados para el crud
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de contratos generales
+      summary: Retorna información sobre el estado de los contratos
+      tags:
+        - Estados
   /variables-clausulas:
     get:
       operationId: VariablesClausulasController_encontrarContratista

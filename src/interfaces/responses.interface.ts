@@ -80,7 +80,7 @@ export interface CDPResponse {
   fecha_modificacion: string;
 }
 
-export interface LugarEjecucionResponse {
+export interface LugarEjecucionResponse<T> {
   id: number;
   pais_id: number;
   ciudad_id: number;
