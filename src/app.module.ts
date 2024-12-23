@@ -6,6 +6,7 @@ import { ContratoGeneralModule } from './contrato-general/contrato-general.modul
 import { ParametroModule } from './parametro/parametro.module';
 import { EspaciosFisicosModule } from './espacios-fisicos/espacios-fisicos.module';
 import { EstadosModule } from './estados/estados.module';
+import { VariablesClausulasModule } from './variables-clausulas/variables-clausulas.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { EstadosModule } from './estados/estados.module';
     ParametroModule,
     EspaciosFisicosModule,
     EstadosModule,
+    VariablesClausulasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
