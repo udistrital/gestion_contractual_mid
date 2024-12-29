@@ -9,6 +9,15 @@ paths:
           description: ''
       tags:
         - App
+  /cargue-masivo/especificaciones-tecnicas:
+    post:
+      operationId: CargueMasivoController_cargueMasivo
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CargueMasivo
   /contratos-generales/{id}:
     get:
       operationId: ContratoGeneralController_consultarInfoContrato
