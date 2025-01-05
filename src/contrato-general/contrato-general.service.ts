@@ -324,7 +324,7 @@ export class ContratoGeneralService {
       const { data } = await axios.get<ContratoResponse>(url);
       return data.Data.proveedor.nombre_completo_proveedor;
     } catch (error) {
-      console.log('Error en consultarProveedor:', error);
+      console.error('Error en consultarProveedor:', error);
       return null;
     }
   }

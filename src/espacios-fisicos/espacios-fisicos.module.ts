@@ -15,5 +15,6 @@ import { ConfigModule } from '@nestjs/config';
   ],
   controllers: [EspaciosFisicosController],
   providers: [EspaciosFisicosService],
+  exports: [EspaciosFisicosService],
 })
 export class EspaciosFisicosModule {}

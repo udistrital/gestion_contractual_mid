@@ -1,7 +1,12 @@
-import {HttpStatus, Injectable} from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import { CDPResponse, LugarEjecucionResponse, ProveedorResponse, StandardResponse } from 'src/interfaces/responses.interface';
+import {
+  CDPResponse,
+  LugarEjecucionResponse,
+  ProveedorResponse,
+  StandardResponse,
+} from 'src/interfaces/responses.interface';
 
 interface ContratoResponse {
   Status: string;
@@ -34,7 +39,7 @@ interface variablesResponse {
   nit_arrendador?: any; ///
   dir_arrendador?: any; ///
   nombre_completo_proveedor?: any;
-  numero_documento?: any; 
+  numero_documento?: any;
   ordenadorId?: any;
   cargo_ordenador?: any; ///
   sede_id?: any;
@@ -50,18 +55,54 @@ interface variablesResponse {
 @Injectable()
 export class VariablesClausulasService {
   private readonly parametrosAxiosInstance: AxiosInstance;
-  
+
   private readonly UNIDADES = [
-    '', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
-    'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve'
+    '',
+    'un',
+    'dos',
+    'tres',
+    'cuatro',
+    'cinco',
+    'seis',
+    'siete',
+    'ocho',
+    'nueve',
+    'diez',
+    'once',
+    'doce',
+    'trece',
+    'catorce',
+    'quince',
+    'dieciséis',
+    'diecisiete',
+    'dieciocho',
+    'diecinueve',
   ];
 
   private readonly DECENAS = [
-    '', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'
+    '',
+    '',
+    'veinte',
+    'treinta',
+    'cuarenta',
+    'cincuenta',
+    'sesenta',
+    'setenta',
+    'ochenta',
+    'noventa',
   ];
 
   private readonly CENTENAS = [
-    '', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'
+    '',
+    'ciento',
+    'doscientos',
+    'trescientos',
+    'cuatrocientos',
+    'quinientos',
+    'seiscientos',
+    'setecientos',
+    'ochocientos',
+    'novecientos',
   ];
 
   private convertirGrupo(n: number): string {
@@ -83,7 +124,10 @@ export class VariablesClausulasService {
         if (unidades === 0) {
           resultado += this.DECENAS[decenasPiso];
         } else {
-          resultado += this.DECENAS[decenasPiso] + ' y ' + this.UNIDADES[unidades].toLowerCase();
+          resultado +=
+            this.DECENAS[decenasPiso] +
+            ' y ' +
+            this.UNIDADES[unidades].toLowerCase();
         }
       }
     }
@@ -96,15 +140,29 @@ export class VariablesClausulasService {
     if (numero < 0) return 'Menos ' + this.numeroATexto(Math.abs(numero));
 
     let resultado = '';
-    let billones = Math.floor(numero / 1000000000000);
-    let millones = Math.floor((numero % 1000000000000) / 1000000);
-    let miles = Math.floor((numero % 1000000) / 1000);
-    let resto = numero % 1000;
+    const billones = Math.floor(numero / 1000000000000);
+    const millones = Math.floor((numero % 1000000000000) / 1000000);
+    const miles = Math.floor((numero % 1000000) / 1000);
+    const resto = numero % 1000;
 
-    if (billones > 0) {resultado += this.convertirGrupo(billones) + ' billon' + (billones > 1 ? 'es ' : ' ');}
-    if (millones > 0) {resultado += this.convertirGrupo(millones) + ' millon' + (millones > 1 ? 'es ' : ' ');}
-    if (miles > 0) {resultado += this.convertirGrupo(miles) + ' mil ';}
-    if (resto > 0) {resultado += this.convertirGrupo(resto);}
+    if (billones > 0) {
+      resultado +=
+        this.convertirGrupo(billones) +
+        ' billon' +
+        (billones > 1 ? 'es ' : ' ');
+    }
+    if (millones > 0) {
+      resultado +=
+        this.convertirGrupo(millones) +
+        ' millon' +
+        (millones > 1 ? 'es ' : ' ');
+    }
+    if (miles > 0) {
+      resultado += this.convertirGrupo(miles) + ' mil ';
+    }
+    if (resto > 0) {
+      resultado += this.convertirGrupo(resto);
+    }
 
     return resultado.trim();
   }
@@ -117,33 +175,39 @@ export class VariablesClausulasService {
     sede_id: 301, ///
   } as const;
 
-  constructor(
-    private configService: ConfigService,
-  ) {
-    const parametrosEndpoint = this.configService.get<string>('ENDP_PARAMETROS');
+  constructor(private configService: ConfigService) {
+    const parametrosEndpoint =
+      this.configService.get<string>('ENDP_PARAMETROS');
     this.parametrosAxiosInstance = axios.create({
       baseURL: parametrosEndpoint,
     });
   }
 
-  private async obtenerParametrosPorTipo(tipoParametroId: number): Promise<Map<number, string>> {
+  private async obtenerParametrosPorTipo(
+    tipoParametroId: number,
+  ): Promise<Map<number, string>> {
     try {
-      const { data } = await this.parametrosAxiosInstance.get<ParametroResponse>(`parametro?query=TipoParametroId:${tipoParametroId}&limit=0`);
+      const { data } =
+        await this.parametrosAxiosInstance.get<ParametroResponse>(
+          `parametro?query=TipoParametroId:${tipoParametroId}&limit=0`,
+        );
 
       if (data.Status !== '200' || !data.Data) {
         throw new Error('Respuesta inválida del servidor de parámetros');
       }
 
-      return new Map(
-        data.Data.map((param) => [param.Id, param.Nombre])
-      );
+      return new Map(data.Data.map((param) => [param.Id, param.Nombre]));
     } catch (error) {
-      console.error(`Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`);
+      console.error(
+        `Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`,
+      );
       throw error;
     }
   }
 
-  private async cargarCacheParametros(): Promise<Map<number, Map<number, string>>> {
+  private async cargarCacheParametros(): Promise<
+    Map<number, Map<number, string>>
+  > {
     const tiposParametros = new Set(Object.values(this.parameterMap));
     const cacheParametros = new Map<number, Map<number, string>>();
 
@@ -151,7 +215,7 @@ export class VariablesClausulasService {
       Array.from(tiposParametros).map(async (tipoParametroId) => {
         const parametros = await this.obtenerParametrosPorTipo(tipoParametroId);
         cacheParametros.set(tipoParametroId, parametros);
-      })
+      }),
     );
 
     return cacheParametros;
@@ -159,7 +223,7 @@ export class VariablesClausulasService {
 
   private async transformarVariables(
     variables: variablesResponse,
-    cacheParametros: Map<number, Map<number, string>>
+    cacheParametros: Map<number, Map<number, string>>,
   ): Promise<variablesResponse> {
     const variablesTransformadas = { ...variables };
 
@@ -175,9 +239,14 @@ export class VariablesClausulasService {
     return variablesTransformadas;
   }
 
-  async dataVaribles(id: string, doc: string): Promise<StandardResponse<variablesResponse>> {
+  async dataVaribles(
+    id: string,
+    doc: string,
+  ): Promise<StandardResponse<variablesResponse>> {
     try {
-      const endpoint: string = this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD');
+      const endpoint: string = this.configService.get<string>(
+        'ENDP_GESTION_CONTRACTUAL_CRUD',
+      );
       const url = `${endpoint}contratos-generales/${id}`;
       const { data } = await axios.get<ContratoResponse>(url);
 
@@ -194,7 +263,7 @@ export class VariablesClausulasService {
       const proveedorInfo = await this.obetenerProveedor(doc);
       const lugarEjecucionInfo = await this.obetenerLugarEjecucion(id);
 
-      let filteredResponse: variablesResponse = {
+      const filteredResponse: variablesResponse = {
         // objeto:
         // actividades:
         valorPesos: infoContrato.valorPesos,
@@ -211,7 +280,8 @@ export class VariablesClausulasService {
         // nom_arrendador:
         // nit_arrendador:
         // dir_arrendador:
-        nombre_completo_proveedor: proveedorInfo?.proveedor?.nombre_completo_proveedor,
+        nombre_completo_proveedor:
+          proveedorInfo?.proveedor?.nombre_completo_proveedor,
         numero_documento: proveedorInfo?.proveedor?.numero_documento,
         ordenadorId: infoContrato.ordenadorId,
         // cargo_ordenador:
@@ -221,7 +291,7 @@ export class VariablesClausulasService {
         // representante:
         direccion: proveedorInfo?.proveedor?.direccion,
         // telefono_contratista:
-        correo: proveedorInfo?.proveedor?.correo
+        correo: proveedorInfo?.proveedor?.correo,
         // oficina_supervisora:
       };
 
@@ -246,7 +316,9 @@ export class VariablesClausulasService {
 
   async obetenerCDP(id: string): Promise<CDPResponse> {
     try {
-      const endpoint: string = this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD');
+      const endpoint: string = this.configService.get<string>(
+        'ENDP_GESTION_CONTRACTUAL_CRUD',
+      );
       const url = `${endpoint}cdp/contrato/${id}`;
       const { data } = await axios.get<ContratoResponse>(url);
       return data.Data[0];
@@ -255,9 +327,13 @@ export class VariablesClausulasService {
     }
   }
 
-  async obetenerLugarEjecucion(id: string): Promise<LugarEjecucionResponse<any>> {
+  async obetenerLugarEjecucion(
+    id: string,
+  ): Promise<LugarEjecucionResponse<any>> {
     try {
-      const endpoint: string = this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD');
+      const endpoint: string = this.configService.get<string>(
+        'ENDP_GESTION_CONTRACTUAL_CRUD',
+      );
       const url = `${endpoint}lugares-ejecucion/contrato/${id}`;
       const { data } = await axios.get<LugarEjecucionResponse<any>>(url);
       return data;
@@ -268,7 +344,9 @@ export class VariablesClausulasService {
 
   async obetenerProveedor(doc: string): Promise<ProveedorResponse> {
     try {
-      const endpoint: string = this.configService.get<string>('ENDP_PROVEEDORES_MID');
+      const endpoint: string = this.configService.get<string>(
+        'ENDP_PROVEEDORES_MID',
+      );
       const url = `${endpoint}contratistas?id=${doc}`;
       const { data } = await axios.get<ContratoResponse>(url);
       return data.Data;

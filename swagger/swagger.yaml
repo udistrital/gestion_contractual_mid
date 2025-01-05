@@ -256,6 +256,42 @@ paths:
       summary: Consulta las variables del Contrato para las clausulas
       tags:
         - VariablesClausulas
+  /ordenadores/contrato/{id}:
+    get:
+      operationId: OrdenadoresController_consultarInfoOrdenador
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del contrato general
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Retorna detalle de un supervisor.
+        '400':
+          description: Error en la solicitud.
+      summary: Retorna información de Supervisor por ID de contrato.
+      tags:
+        - Ordenadores
+  /supervisores/contrato/{id}:
+    get:
+      operationId: SupervisoresController_consultarInfoSupervisor
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del contrato general
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Retorna detalle de un supervisor.
+        '400':
+          description: Error en la solicitud.
+      summary: Retorna información de Supervisor por ID de contrato.
+      tags:
+        - Supervisores
 info:
   title: Gestion Contractual API MID
   description: API
