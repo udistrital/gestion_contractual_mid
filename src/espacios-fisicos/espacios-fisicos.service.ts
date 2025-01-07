@@ -34,6 +34,61 @@ export class EspaciosFisicosService {
     }
   }
 
+  obtenerSedePorId(id: string): Observable<SedeResponse> {
+    const url = this.buildUrl('espacio_fisico', {
+      query: `Id:${id}`,
+      fields: 'Id,Nombre',
+      limit: '1',
+    });
+
+    return this.httpService.get<SedeResponse>(url).pipe(
+      map((response) => {
+        if (!response.data) {
+          this.logger.warn(`No se encontró la sede con ID ${id}`);
+          throw new NotFoundException(`No se encontró la sede con ID ${id}`);
+        }
+        return response.data;
+      }),
+      catchError(this.handleError),
+    );
+  }
+
+  obtenerDependenciaPorId(id: string): Observable<DependenciaSimple> {
+    const url = this.buildUrl('asignacion_espacio_fisico_dependencia', {
+      query: `DependenciaId:${id}`,
+      fields: 'Id,DependenciaId',
+      limit: '1',
+    });
+
+    return this.httpService.get<DependenciaResponse[]>(url).pipe(
+      map((response) => {
+        if (!response.data || !response.data.length) {
+          this.logger.warn(`No se encontró la dependencia con ID ${id}`);
+          throw new NotFoundException(
+            `No se encontró la dependencia con ID ${id}`,
+          );
+        }
+
+        const dependencia = response.data[0];
+
+        if (!dependencia.DependenciaId) {
+          this.logger.error(
+            `Datos incompletos o malformados para la dependencia ${id}`,
+          );
+          throw new InternalServerErrorException(
+            'Error en el formato de los datos recibidos',
+          );
+        }
+
+        return {
+          id: dependencia.DependenciaId.Id,
+          nombre: dependencia.DependenciaId.Nombre,
+        };
+      }),
+      catchError(this.handleError),
+    );
+  }
+
   /**
    * Obtiene todas las sedes activas
    * @returns Observable<SedeResponse[]>

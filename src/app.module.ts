@@ -9,6 +9,8 @@ import { EspaciosFisicosModule } from './espacios-fisicos/espacios-fisicos.modul
 import { EstadosModule } from './estados/estados.module';
 import { ParametroModule } from './parametro/parametro.module';
 import { VariablesClausulasModule } from './variables-clausulas/variables-clausulas.module';
+import { OrdenadoresModule } from './ordenador/ordenadores.module';
+import { SupervisoresModule } from './supervisor/supervisores.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { VariablesClausulasModule } from './variables-clausulas/variables-clausu
     EstadosModule,
     ParametroModule,
     VariablesClausulasModule,
+    OrdenadoresModule,
+    SupervisoresModule,
   ],
   controllers: [AppController],
   providers: [AppService],

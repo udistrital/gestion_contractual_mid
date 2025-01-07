@@ -1,4 +1,10 @@
-import { Controller, Get, Param, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  HttpStatus,
+  HttpException,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -7,9 +13,13 @@ import {
   ApiNotFoundResponse,
 } from '@nestjs/swagger';
 import { EspaciosFisicosService } from './espacios-fisicos.service';
-import { Observable, map, catchError, of } from 'rxjs';
+import { Observable, map, catchError } from 'rxjs';
 
-import { DependenciaSimple, SedeResponse, StandardResponse } from '../interfaces/responses.interface';
+import {
+  DependenciaSimple,
+  SedeResponse,
+  StandardResponse,
+} from '../interfaces/responses.interface';
 
 @ApiTags('Espacios Físicos')
 @Controller('espacios-fisicos')
@@ -69,13 +79,14 @@ export class EspaciosFisicosController {
           Data: data,
         }),
       ),
-      catchError((error) =>
-        of({
+      catchError((error) => {
+        const response: StandardResponse<SedeResponse[]> = {
           Success: false,
           Status: error.status || HttpStatus.INTERNAL_SERVER_ERROR,
           Message: error.message || 'Error al obtener las sedes',
-        }),
-      ),
+        };
+        throw new HttpException(response, response.Status);
+      }),
     );
   }
 
@@ -139,15 +150,16 @@ export class EspaciosFisicosController {
           Data: data,
         }),
       ),
-      catchError((error) =>
-        of({
+      catchError((error) => {
+        const response: StandardResponse<DependenciaSimple[]> = {
           Success: false,
           Status: error.status || HttpStatus.INTERNAL_SERVER_ERROR,
           Message:
             error.message ||
             `Error al obtener las dependencias de la sede ${id}`,
-        }),
-      ),
+        };
+        throw new HttpException(response, response.Status);
+      }),
     );
   }
 }
