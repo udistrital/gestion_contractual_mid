@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Controller('cargue-masivo')
 export class CargueMasivoController {
-  private serverlessUrl = this.configService.get<string>(
+  private cargueMasivoUrl = this.configService.get<string>(
     'CARGUE_MASIVO_MID_SERVERLESS',
   );
 
@@ -29,7 +29,7 @@ export class CargueMasivoController {
         complement,
       );
       const response = await axios.post(
-        `${this.serverlessUrl}registro-datos-archivo`,
+        `${this.cargueMasivoUrl}registro-datos-archivo`,
         estructura,
       );
       return response.data;
