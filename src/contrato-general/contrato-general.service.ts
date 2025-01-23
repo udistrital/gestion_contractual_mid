@@ -27,6 +27,15 @@ interface ContratoResponse {
   Data: any;
 }
 
+interface ParametroValue {
+  id: number;
+  nombre: string;
+}
+
+interface ParametroMap {
+  [key: number]: ParametroValue;
+}
+
 @Injectable()
 export class ContratoGeneralService {
   private readonly logger = new Logger(ContratoGeneralService.name);
@@ -137,6 +146,46 @@ export class ContratoGeneralService {
     }
   }
 
+  private async cargarCacheParametrosConIds(): Promise<
+    Map<number, ParametroMap>
+  > {
+    const tiposParametros = new Set(Object.values(this.parameterMap));
+    const cacheParametros = new Map<number, ParametroMap>();
+
+    await Promise.all(
+      Array.from(tiposParametros).map(async (tipoParametroId) => {
+        try {
+          const response = await this.fetchWithRetry(() =>
+            this.parametrosAxiosInstance.get<ParametroResponse>(
+              `parametro?query=TipoParametroId:${tipoParametroId}&limit=0`,
+            ),
+          );
+
+          if (response.data.Status !== '200' || !response.data.Data) {
+            throw new Error('Respuesta inválida del servidor de parámetros');
+          }
+
+          const parametrosMap: ParametroMap = {};
+          response.data.Data.forEach((param) => {
+            parametrosMap[param.Id] = {
+              id: param.Id,
+              nombre: param.Nombre,
+            };
+          });
+
+          cacheParametros.set(tipoParametroId, parametrosMap);
+        } catch (error) {
+          this.logger.error(
+            `Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`,
+          );
+          throw error;
+        }
+      }),
+    );
+
+    return cacheParametros;
+  }
+
   private async cargarCacheParametros(): Promise<
     Map<number, Map<number, string>>
   > {
@@ -151,6 +200,64 @@ export class ContratoGeneralService {
     );
 
     return cacheParametros;
+  }
+
+  private async transformarContratosConIds(
+    contratos: any[],
+    cacheParametros: Map<number, ParametroMap>,
+  ): Promise<any[]> {
+    const contratosNormales = await Promise.all(
+      contratos.map(async (contratoRaw) => {
+        const contratoTransformado = { ...contratoRaw };
+
+        Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
+          if (contratoRaw[key] != null) {
+            const parametrosMap = cacheParametros.get(tipoParametroId);
+            if (parametrosMap && parametrosMap[contratoRaw[key]]) {
+              const nombreCampo = key.replace('_id', '');
+              contratoTransformado[nombreCampo] =
+                parametrosMap[contratoRaw[key]].nombre;
+            }
+          }
+        });
+
+        if (contratoTransformado.estados) {
+          const estadoParametroMap = cacheParametros.get(
+            this.parameterMap.estado_contrato_id,
+          );
+          const estadoId = contratoTransformado.estados.estado_parametro_id;
+          if (estadoParametroMap && estadoId != null) {
+            contratoTransformado.estados.estado_parametro =
+              estadoParametroMap[estadoId]?.nombre || estadoId;
+          }
+        }
+
+        if (contratoTransformado.contratista) {
+          const tipoPersonaMap = cacheParametros.get(
+            this.parameterMap.tipo_persona_id,
+          );
+          const tipoPersonaId =
+            contratoTransformado.contratista.tipo_persona_id;
+          if (tipoPersonaMap && tipoPersonaId != null) {
+            contratoTransformado.contratista.tipo_persona =
+              tipoPersonaMap[tipoPersonaId]?.nombre || tipoPersonaId;
+          }
+
+          const numeroDocumento =
+            contratoRaw.contratista?.numero_documento ?? 'Desconocido';
+
+          if (numeroDocumento !== 'Desconocido') {
+            const contratistaNombre =
+              await this.consultarProveedor(numeroDocumento);
+            contratoTransformado.contratista.nombre = contratistaNombre;
+          }
+        }
+
+        return contratoTransformado;
+      }),
+    );
+
+    return contratosNormales;
   }
 
   private async transformarContratos(
@@ -217,6 +324,66 @@ export class ContratoGeneralService {
     return contratosNormales;
   }
 
+  async getAllWithIds(
+    queryParams: BaseQueryParamsDto,
+  ): Promise<PaginatedResponse<any>> {
+    try {
+      const baseUrl = 'contratos-generales';
+      const fields = 'vigencia,tipo_contrato_id,contratista,estados';
+      const include = 'estados,contratista';
+      const queryBase = { 'estados.actual': true };
+      const queryFilter = queryParams.queryFilter
+        ? JSON.parse(`{${queryParams.queryFilter}}`)
+        : {};
+
+      const query = { ...queryBase, ...queryFilter };
+
+      const params = {
+        fields,
+        query: JSON.stringify(query),
+        include,
+        limit: queryParams.limit ?? 10,
+        offset: queryParams.offset ?? 0,
+      };
+
+      const url = `${baseUrl}?${Object.entries(params)
+        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+        .join('&')}`;
+
+      this.logger.log(`Consultando contratos generales en ${url}`);
+
+      const response = await this.fetchWithRetry(() =>
+        this.axiosInstance.get<PaginatedResponse<any>>(baseUrl, { params }),
+      );
+
+      if (!response.data?.Data) {
+        this.logger.warn('Respuesta inválida al consultar contratos generales');
+        throw new NotFoundException('Contratos generales no encontrados');
+      }
+
+      const cacheParametros = await this.cargarCacheParametrosConIds();
+
+      const BATCH_SIZE = 25;
+      const batches = chunk(response.data.Data, BATCH_SIZE);
+
+      const results = await Promise.all(
+        batches.map((batch) =>
+          this.transformarContratosConIds(batch, cacheParametros),
+        ),
+      );
+
+      return {
+        Data: flatten(results),
+        Metadata: response.data.Metadata,
+      };
+    } catch (error) {
+      this.logger.error('Error en getAllWithIds:', error);
+      throw new InternalServerErrorException(
+        `Error al consultar contratos generales: ${error.message}`,
+      );
+    }
+  }
+
   async getAll(
     queryParams: BaseQueryParamsDto,
   ): Promise<PaginatedResponse<any>> {
@@ -256,7 +423,7 @@ export class ContratoGeneralService {
 
       const cacheParametros = await this.cargarCacheParametros();
 
-      const BATCH_SIZE = 25; // Reducido de 50 a 25 por las llamadas adicionales
+      const BATCH_SIZE = 25;
       const batches = chunk(response.data.Data, BATCH_SIZE);
 
       const results = await Promise.all(

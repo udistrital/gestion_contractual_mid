@@ -80,6 +80,52 @@ paths:
           description: Lista de contratos generales
       summary: Retorna información de contratos generales con filtros y paginación
       tags: *ref_0
+  /contratos-generales/con-ids:
+    get:
+      operationId: ContratoGeneralController_consultarContratosConIds
+      parameters:
+        - name: sortBy
+          required: false
+          in: query
+          description: Campo por el cual ordenar
+          schema:
+            type: string
+        - name: orderBy
+          required: false
+          in: query
+          description: Dirección del ordenamiento
+          schema:
+            enum:
+              - ASC
+              - DESC
+            type: string
+        - name: limit
+          required: false
+          in: query
+          description: Número de registros a retornar
+          schema:
+            minimum: 0
+            type: number
+        - name: offset
+          required: false
+          in: query
+          description: Número de registros a saltar
+          schema:
+            minimum: 0
+            type: number
+        - name: queryFilter
+          required: false
+          in: query
+          description: Filtros aplicados para el crud
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de contratos generales con IDs y valores descriptivos
+      summary: >-
+        Retorna información de contratos generales manteniendo los IDs
+        originales
+      tags: *ref_0
   /espacios-fisicos/sedes:
     get:
       description: Obtiene todas las sedes activas del sistema

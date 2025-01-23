@@ -116,4 +116,50 @@ export class ContratoGeneralController {
       );
     }
   }
+
+  @Get('con-ids')
+  @ApiOperation({
+    summary:
+      'Retorna información de contratos generales manteniendo los IDs originales',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de contratos generales con IDs y valores descriptivos',
+  })
+  async consultarContratosConIds(
+    @Query(new ValidationPipe({ transform: true }))
+    queryParams: BaseQueryParamsDto,
+  ): Promise<StandardResponse<any[]>> {
+    try {
+      const result =
+        await this.contratoGeneralService.getAllWithIds(queryParams);
+
+      return {
+        Success: true,
+        Status: HttpStatus.OK,
+        Message: 'Contratos consultados exitosamente',
+        Data: result.Data,
+        Metadata: result.Metadata,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error en consultarContratosConIds: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: `Error interno del servidor: ${error.message}`,
+          Data: null,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
