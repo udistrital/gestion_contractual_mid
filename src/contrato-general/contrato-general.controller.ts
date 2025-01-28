@@ -117,7 +117,7 @@ export class ContratoGeneralController {
     }
   }
 
-  @Get('con-ids')
+  @Get('/ids/separados')
   @ApiOperation({
     summary:
       'Retorna información de contratos generales manteniendo los IDs originales',
@@ -126,7 +126,7 @@ export class ContratoGeneralController {
     status: 200,
     description: 'Lista de contratos generales con IDs y valores descriptivos',
   })
-  async consultarContratosConIds(
+  async consultarContratosIdSeparados(
     @Query(new ValidationPipe({ transform: true }))
     queryParams: BaseQueryParamsDto,
   ): Promise<StandardResponse<any[]>> {
@@ -143,7 +143,7 @@ export class ContratoGeneralController {
       };
     } catch (error) {
       this.logger.error(
-        `Error en consultarContratosConIds: ${error.message}`,
+        `Error en consultarContratos: ${error.message}`,
         error.stack,
       );
 

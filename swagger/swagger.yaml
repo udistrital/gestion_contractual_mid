@@ -80,9 +80,9 @@ paths:
           description: Lista de contratos generales
       summary: Retorna información de contratos generales con filtros y paginación
       tags: *ref_0
-  /contratos-generales/con-ids:
+  /contratos-generales/ids/separados:
     get:
-      operationId: ContratoGeneralController_consultarContratosConIds
+      operationId: ContratoGeneralController_consultarContratosIdSeparados
       parameters:
         - name: sortBy
           required: false

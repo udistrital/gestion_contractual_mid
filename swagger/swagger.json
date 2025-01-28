@@ -124,9 +124,9 @@
         ]
       }
     },
-    "/contratos-generales/con-ids": {
+    "/contratos-generales/ids/separados": {
       "get": {
-        "operationId": "ContratoGeneralController_consultarContratosConIds",
+        "operationId": "ContratoGeneralController_consultarContratosIdSeparados",
         "parameters": [
           {
             "name": "sortBy",
