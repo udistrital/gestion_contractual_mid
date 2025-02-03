@@ -80,6 +80,28 @@ paths:
           description: Lista de contratos generales
       summary: Retorna información de contratos generales con filtros y paginación
       tags: *ref_0
+  /contratos-generales/consecutivo:
+    post:
+      operationId: ContratoGeneralController_generarConsecutivo
+      parameters: []
+      responses:
+        '200':
+          description: Consecutivo del contrato generado exitosamente
+        '500':
+          description: Error interno del servidor
+      summary: Generación de consecutivo del contrato
+      tags: *ref_0
+  /contratos-generales/numero-contrato:
+    post:
+      operationId: ContratoGeneralController_generarNumeroContrato
+      parameters: []
+      responses:
+        '200':
+          description: Número de contrato generado exitosamente
+        '500':
+          description: Error interno del servidor
+      summary: Generación de número de contrato
+      tags: *ref_0
   /espacios-fisicos/sedes:
     get:
       description: Obtiene todas las sedes activas del sistema
