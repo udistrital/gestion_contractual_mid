@@ -12,6 +12,7 @@ import {
   ResponseMetadata,
 } from '../interfaces/responses.interface';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
+import { datos } from './conf';
 
 interface ParametroResponse {
   Status: string;
@@ -540,6 +541,79 @@ export class ContratoGeneralService {
     } catch (error) {
       console.error('Error en consultarProveedor:', error);
       return null;
+    }
+  }
+
+  // Información de contratos generales por unidad y vigencia
+  async obtenerConteo(body: any, endpoint: string): Promise<any> {
+    try {
+      const urlGestionContractualCrud: string = this.configService.get<string>(
+        'ENDP_GESTION_CONTRACTUAL_CRUD',
+      );
+
+      const url = `${urlGestionContractualCrud}contratos-generales/${endpoint}/`;
+      const { data } = await axios.post<any>(url, body);
+
+      if (!data.Success || data.Status != '200') {
+        return null;
+      }
+
+      return data.Data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async generarConsecutivo(body: any) {
+    try {
+      const { unidad_ejecutora_id } = body;
+      if (!unidad_ejecutora_id) {
+        throw new Error(`El campo unidad_ejecutora_id es requerido`);
+      }
+
+      let conteo = await this.obtenerConteo(body, 'conteo-consecutivo');
+      if (!Number.isInteger(conteo) || conteo < 0) {
+        throw new Error('Error al obtener el conteo de los contratos');
+      }
+
+      const numeroContrato = conteo + 1;
+      return numeroContrato.toString();
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Error al generar consecutivo del contrato: ${error.message}`,
+      );
+    }
+  }
+
+  async generarNumeroContrato(body: any) {
+    try {
+      const { unidad_ejecutora_id, vigencia, estado } = body;
+      if (!unidad_ejecutora_id) {
+        throw new Error(`El campo unidad_ejecutora_id es requerido`);
+      }
+      if (!vigencia) {
+        throw new Error('El campo vigencia es requerido');
+      }
+      if (!estado) {
+        throw new Error('El campo estado es requerido');
+      }
+
+      const { prefijo, sufijo } = datos[unidad_ejecutora_id];
+      if (prefijo == null || sufijo == null) {
+        throw new Error('Unidad ejecutora invalida');
+      }
+
+      let conteo = await this.obtenerConteo(body, 'conteo-numero-contrato');
+      if (!Number.isInteger(conteo) || conteo < 0) {
+        throw new Error('Error al obtener el conteo de los contratos');
+      }
+
+      const numeroContrato = prefijo + (conteo + 1) + sufijo;
+      return numeroContrato;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Error al generar número de contrato: ${error.message}`,
+      );
     }
   }
 }

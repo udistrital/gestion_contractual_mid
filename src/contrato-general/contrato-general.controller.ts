@@ -7,6 +7,8 @@ import {
   HttpException,
   Logger,
   Param,
+  Post,
+  Body,
 } from '@nestjs/common';
 import { ContratoGeneralService } from './contrato-general.service';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
@@ -98,6 +100,89 @@ export class ContratoGeneralController {
     } catch (error) {
       this.logger.error(
         `Error en consultarContratos: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: `Error interno del servidor: ${error.message}`,
+          Data: null,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('consecutivo')
+  @ApiOperation({ summary: 'Generación de consecutivo del contrato' })
+  @ApiResponse({
+    status: 200,
+    description: 'Consecutivo del contrato generado exitosamente',
+  })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async generarConsecutivo(
+    @Body(ValidationPipe) body: any,
+  ): Promise<StandardResponse<any>> {
+    try {
+      const result = await this.contratoGeneralService.generarConsecutivo(body);
+
+      return {
+        Success: true,
+        Status: HttpStatus.OK,
+        Message: 'Consecutivo de contrato generado exitosamente',
+        Data: result,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al generar consecutivo del contrato: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: `Error interno del servidor: ${error.message}`,
+          Data: null,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('numero-contrato')
+  @ApiOperation({ summary: 'Generación de número de contrato' })
+  @ApiResponse({
+    status: 200,
+    description: 'Número de contrato generado exitosamente',
+  })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async generarNumeroContrato(
+    @Body(ValidationPipe) body: any,
+  ): Promise<StandardResponse<any>> {
+    try {
+      const result =
+        await this.contratoGeneralService.generarNumeroContrato(body);
+
+      return {
+        Success: true,
+        Status: HttpStatus.OK,
+        Message: 'Número de contrato generado exitosamente',
+        Data: result,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al generar número de contrato: ${error.message}`,
         error.stack,
       );
 
