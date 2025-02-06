@@ -38,8 +38,8 @@ export class BaseQueryParamsDto {
   @Min(0)
   offset?: number;
 
-@ApiPropertyOptional({
-    description: 'Filtros aplicados para el crud'
+  @ApiPropertyOptional({
+    description: 'Filtros aplicados para el crud',
   })
   @IsOptional()
   @IsString()

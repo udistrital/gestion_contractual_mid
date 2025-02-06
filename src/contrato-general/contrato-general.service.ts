@@ -28,6 +28,15 @@ interface ContratoResponse {
   Data: any;
 }
 
+interface ParametroValue {
+  id: number;
+  nombre: string;
+}
+
+interface ParametroMap {
+  [key: number]: ParametroValue;
+}
+
 @Injectable()
 export class ContratoGeneralService {
   private readonly logger = new Logger(ContratoGeneralService.name);
@@ -218,6 +227,211 @@ export class ContratoGeneralService {
     return contratosNormales;
   }
 
+  private async transformarContratosConIdSeparados(
+    contratos: any[],
+    cacheParametros: Map<number, Map<number, string>>,
+  ): Promise<any[]> {
+    const contratosNormales = await Promise.all(
+      contratos.map(async (contratoRaw) => {
+        const contratoTransformado: any = {
+          id: contratoRaw.id,
+        };
+
+        Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
+          if (contratoRaw[key] != null) {
+            const parametrosMap = cacheParametros.get(tipoParametroId);
+            if (parametrosMap && parametrosMap.has(contratoRaw[key])) {
+              contratoTransformado[key] = contratoRaw[key];
+              contratoTransformado[key.replace('_id', '')] = parametrosMap.get(
+                contratoRaw[key],
+              );
+            }
+          }
+        });
+
+        ['vigencia', 'fecha_creacion', 'fecha_modificacion'].forEach(
+          (campo) => {
+            if (contratoRaw[campo] !== undefined) {
+              contratoTransformado[campo] = contratoRaw[campo];
+            }
+          },
+        );
+
+        if (contratoRaw.estados) {
+          contratoTransformado.estados = {
+            id: contratoRaw.estados.id,
+            contrato_general_id: contratoRaw.estados.contrato_general_id,
+            usuario_id: contratoRaw.estados.usuario_id,
+            usuario_rol: contratoRaw.estados.usuario_rol,
+          };
+
+          const estadoParametroMap = cacheParametros.get(
+            this.parameterMap.estado_contrato_id,
+          );
+          if (
+            estadoParametroMap &&
+            contratoRaw.estados.estado_parametro_id != null
+          ) {
+            contratoTransformado.estados.estado_parametro_id =
+              contratoRaw.estados.estado_parametro_id;
+            contratoTransformado.estados.estado_parametro =
+              estadoParametroMap.get(contratoRaw.estados.estado_parametro_id) ||
+              contratoRaw.estados.estado_parametro_id;
+          }
+
+          [
+            'estado_interno_parametro_id',
+            'motivo',
+            'actual',
+            'fecha_evento',
+            'activo',
+            'fecha_creacion',
+            'fecha_modificacion',
+          ].forEach((campo) => {
+            if (contratoRaw.estados[campo] !== undefined) {
+              contratoTransformado.estados[campo] = contratoRaw.estados[campo];
+            }
+          });
+        }
+
+        if (contratoRaw.contratista) {
+          contratoTransformado.contratista = {
+            id: contratoRaw.contratista.id,
+            numero_documento: contratoRaw.contratista.numero_documento,
+          };
+
+          const tipoPersonaMap = cacheParametros.get(
+            this.parameterMap.tipo_persona_id,
+          );
+          if (
+            tipoPersonaMap &&
+            contratoRaw.contratista.tipo_persona_id != null
+          ) {
+            contratoTransformado.contratista.tipo_persona_id =
+              contratoRaw.contratista.tipo_persona_id;
+            contratoTransformado.contratista.tipo_persona =
+              tipoPersonaMap.get(contratoRaw.contratista.tipo_persona_id) ||
+              contratoRaw.contratista.tipo_persona_id;
+          }
+
+          if (contratoRaw.contratista.clase_contratista_id) {
+            const claseContratistaMap = cacheParametros.get(
+              this.parameterMap.clase_contratista_id,
+            );
+            if (claseContratistaMap) {
+              contratoTransformado.contratista.clase_contratista_id =
+                contratoRaw.contratista.clase_contratista_id;
+              contratoTransformado.contratista.clase_contratista =
+                claseContratistaMap.get(
+                  contratoRaw.contratista.clase_contratista_id,
+                ) || contratoRaw.contratista.clase_contratista_id;
+            }
+          }
+
+          [
+            'activo',
+            'fecha_creacion',
+            'fecha_modificacion',
+            'contrato_general_id',
+          ].forEach((campo) => {
+            if (contratoRaw.contratista[campo] !== undefined) {
+              contratoTransformado.contratista[campo] =
+                contratoRaw.contratista[campo];
+            }
+          });
+
+          const numeroDocumento =
+            contratoRaw.contratista.numero_documento ?? 'Desconocido';
+          if (numeroDocumento !== 'Desconocido') {
+            contratoTransformado.contratista.nombre =
+              await this.consultarProveedor(numeroDocumento);
+          } else {
+            contratoTransformado.contratista.nombre = null;
+          }
+        }
+
+        return contratoTransformado;
+      }),
+    );
+
+    return contratosNormales;
+  }
+
+  async getAllWithIds(
+    queryParams: BaseQueryParamsDto,
+  ): Promise<PaginatedResponse<any>> {
+    try {
+      const baseUrl = 'contratos-generales';
+      const fields = 'vigencia,tipo_contrato_id,contratista,estados';
+      const include = 'estados,contratista';
+      const queryBase = { 'estados.actual': true };
+      const queryFilter = queryParams.queryFilter
+        ? JSON.parse(`{${queryParams.queryFilter}}`)
+        : {};
+
+      const query = { ...queryBase, ...queryFilter };
+
+      const params = {
+        fields,
+        query: JSON.stringify(query),
+        include,
+        limit: queryParams.limit ?? 10,
+        offset: queryParams.offset ?? 0,
+      };
+
+      const url = `${baseUrl}?${Object.entries(params)
+        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+        .join('&')}`;
+
+      this.logger.log(`Consultando contratos generales en ${url}`);
+
+      const response = await this.fetchWithRetry(() =>
+        this.axiosInstance.get<PaginatedResponse<any>>(baseUrl, { params }),
+      );
+
+      if (!response.data?.Data) {
+        this.logger.warn('Respuesta inválida al consultar contratos generales');
+        throw new NotFoundException('Contratos generales no encontrados');
+      }
+
+      const cacheParametros = await this.cargarCacheParametros();
+
+      const BATCH_SIZE = 25;
+      const batches = chunk(response.data.Data, BATCH_SIZE);
+
+      const results = await Promise.all(
+        batches.map((batch) =>
+          this.transformarContratosConIdSeparados(batch, cacheParametros),
+        ),
+      );
+
+      const metadata: ResponseMetadata = response.data.Metadata || {
+        total: response.data.Data.length,
+        limit: queryParams.limit || 10,
+        offset: queryParams.offset || 0,
+        currentPage:
+          Math.floor((queryParams.offset || 0) / (queryParams.limit || 10)) + 1,
+        totalPages: Math.ceil(
+          response.data.Data.length / (queryParams.limit || 10),
+        ),
+        hasNextPage:
+          (queryParams.offset || 0) + (queryParams.limit || 10) <
+          response.data.Data.length,
+        hasPreviousPage: (queryParams.offset || 0) > 0,
+      };
+
+      return {
+        Data: flatten(results),
+        Metadata: metadata,
+      };
+    } catch (error) {
+      this.logger.error('Error en getAll:', error);
+      throw new InternalServerErrorException(
+        `Error al consultar contratos generales: ${error.message}`,
+      );
+    }
+  }
+
   async getAll(
     queryParams: BaseQueryParamsDto,
   ): Promise<PaginatedResponse<any>> {
@@ -257,7 +471,7 @@ export class ContratoGeneralService {
 
       const cacheParametros = await this.cargarCacheParametros();
 
-      const BATCH_SIZE = 25; // Reducido de 50 a 25 por las llamadas adicionales
+      const BATCH_SIZE = 25;
       const batches = chunk(response.data.Data, BATCH_SIZE);
 
       const results = await Promise.all(
