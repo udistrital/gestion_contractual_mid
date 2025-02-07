@@ -9,10 +9,12 @@ import {
   Param,
   Post,
   Body,
+  ParseBoolPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { ContratoGeneralService } from './contrato-general.service';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
-import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { StandardResponse } from '../interfaces/responses.interface';
 import { ParametrosConsultarContratoDto } from './dto/params.dto';
 
@@ -28,6 +30,13 @@ export class ContratoGeneralController {
   @ApiOperation({
     summary: 'Retorna información de contrato-general por ID.',
   })
+  @ApiQuery({
+    name: 'ids',
+    type: Boolean,
+    required: false,
+    default: false,
+    description: 'Mostrar la información con sus respectivos ids',
+  })
   @ApiResponse({
     status: 200,
     description: 'Retorna detalle de un contrato-general.',
@@ -40,10 +49,13 @@ export class ContratoGeneralController {
   })
   async consultarInfoContrato(
     @Param(ValidationPipe) param: ParametrosConsultarContratoDto,
+    @Query('ids', new DefaultValuePipe(false), new ParseBoolPipe())
+    ids?: boolean,
   ): Promise<StandardResponse<any>> {
     try {
       const result = await this.contratoGeneralService.getContratoTransformed(
         +param.id,
+        ids,
       );
 
       return {
