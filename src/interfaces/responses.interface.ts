@@ -45,6 +45,11 @@ export interface DependenciaSimple {
   nombre: string;
 }
 
+export interface ContratoResponse {
+  Status: string;
+  Data: any;
+}
+
 export interface EstadoContratoResponse {
   id: number;
   usuario_id: number;

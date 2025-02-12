@@ -10,47 +10,32 @@ import { chunk, flatten } from 'lodash';
 import {
   PaginatedResponse,
   ResponseMetadata,
+  ParametroResponse,
+  ContratoResponse,
 } from '../interfaces/responses.interface';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { datos } from './conf';
 
-interface ParametroResponse {
-  Status: string;
-  Data: Array<{
-    Id: number;
-    Nombre: string;
-    [key: string]: any;
-  }>;
-}
-
-interface ContratoResponse {
-  Status: string;
-  Data: any;
-}
-
-interface ParametroValue {
-  id: number;
-  nombre: string;
-}
-
-interface ParametroMap {
-  [key: number]: ParametroValue;
-}
-
 @Injectable()
 export class ContratoGeneralService {
   private readonly logger = new Logger(ContratoGeneralService.name);
-  private readonly axiosInstance: AxiosInstance;
-  private readonly parametrosAxiosInstance: AxiosInstance;
+  private readonly gestionContractualCrud: AxiosInstance;
+  private readonly parametrosCrud: AxiosInstance;
 
   constructor(private configService: ConfigService) {
-    this.axiosInstance = axios.create({
-      baseURL: this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD'),
-      timeout: 5000,
-    });
+    this.gestionContractualCrud = this.createAxiosInstance(
+      'ENDP_GESTION_CONTRACTUAL_CRUD',
+    );
+    this.parametrosCrud = this.createAxiosInstance('ENDP_PARAMETROS_CRUD');
+  }
 
-    this.parametrosAxiosInstance = axios.create({
-      baseURL: this.configService.get<string>('ENDP_PARAMETROS_CRUD'),
+  private createAxiosInstance(endpointKey: string): AxiosInstance {
+    const baseURL = this.configService.get<string>(endpointKey);
+    if (!baseURL) {
+      throw new Error(`Configuración faltante para ${endpointKey}`);
+    }
+    return axios.create({
+      baseURL,
       timeout: 5000,
     });
   }
@@ -70,7 +55,7 @@ export class ContratoGeneralService {
     origen_presupuestos_id: 125,
     tema_gasto_inversion_id: 126,
     medio_pogo_id: 127,
-    unidad_ejecutora_id: 7,
+    unidad_ejecutora_id: 146,
     estado_contrato_id: 137,
     tipo_persona_id: 132,
   } as const;
@@ -94,7 +79,9 @@ export class ContratoGeneralService {
   async consultarInfoContrato(id: number): Promise<any> {
     try {
       const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<ContratoResponse>(`contratos-generales/${id}`),
+        this.gestionContractualCrud.get<ContratoResponse>(
+          `contratos-generales/${id}`,
+        ),
       );
 
       if (!response.data?.Data) {
@@ -127,7 +114,7 @@ export class ContratoGeneralService {
   ): Promise<Map<number, string>> {
     try {
       const response = await this.fetchWithRetry(() =>
-        this.parametrosAxiosInstance.get<ParametroResponse>(
+        this.parametrosCrud.get<ParametroResponse>(
           `parametro?query=TipoParametroId:${tipoParametroId}&limit=0`,
         ),
       );
@@ -166,16 +153,21 @@ export class ContratoGeneralService {
   private async transformarContratos(
     contratos: any[],
     cacheParametros: Map<number, Map<number, string>>,
+    ids: boolean = false,
   ): Promise<any[]> {
     const contratosNormales = await Promise.all(
       contratos.map(async (contratoRaw) => {
         const contratoTransformado = { ...contratoRaw };
 
         Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
-          if (contratoRaw[key] != null) {
+          if (contratoRaw[key] != null && key.endsWith('_id')) {
             const parametrosMap = cacheParametros.get(tipoParametroId);
+            const newKey = key.replace(/_id$/, '');
+
             if (parametrosMap && parametrosMap.has(contratoRaw[key])) {
-              contratoTransformado[key] = parametrosMap.get(contratoRaw[key]);
+              contratoTransformado[ids ? newKey : key] = parametrosMap.get(
+                contratoRaw[key],
+              );
             }
           }
         });
@@ -188,10 +180,12 @@ export class ContratoGeneralService {
             estadoParametroMap &&
             contratoTransformado.estados.estado_parametro_id != null
           ) {
-            contratoTransformado.estados.estado_parametro_id =
-              estadoParametroMap.get(
-                contratoTransformado.estados.estado_parametro_id,
-              ) || contratoTransformado.estados.estado_parametro_id;
+            ids
+              ? contratoTransformado.estados.estado_parametro
+              : (contratoTransformado.estados.estado_parametro_id =
+                  estadoParametroMap.get(
+                    contratoTransformado.estados.estado_parametro_id,
+                  ) || contratoTransformado.estados.estado_parametro_id);
           }
         }
 
@@ -203,10 +197,12 @@ export class ContratoGeneralService {
             tipoPersonaMap &&
             contratoTransformado.contratista.tipo_persona_id != null
           ) {
-            contratoTransformado.contratista.tipo_persona_id =
-              tipoPersonaMap.get(
-                contratoTransformado.contratista.tipo_persona_id,
-              ) || contratoTransformado.contratista.tipo_persona_id;
+            ids
+              ? contratoTransformado.contratista.tipo_persona
+              : (contratoTransformado.contratista.tipo_persona_id =
+                  tipoPersonaMap.get(
+                    contratoTransformado.contratista.tipo_persona_id,
+                  ) || contratoTransformado.contratista.tipo_persona_id);
           }
         }
 
@@ -386,7 +382,9 @@ export class ContratoGeneralService {
       this.logger.log(`Consultando contratos generales en ${url}`);
 
       const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<PaginatedResponse<any>>(baseUrl, { params }),
+        this.gestionContractualCrud.get<PaginatedResponse<any>>(baseUrl, {
+          params,
+        }),
       );
 
       if (!response.data?.Data) {
@@ -461,7 +459,9 @@ export class ContratoGeneralService {
       this.logger.log(`Consultando contratos generales en ${url}`);
 
       const response = await this.fetchWithRetry(() =>
-        this.axiosInstance.get<PaginatedResponse<any>>(baseUrl, { params }),
+        this.gestionContractualCrud.get<PaginatedResponse<any>>(baseUrl, {
+          params,
+        }),
       );
 
       if (!response.data?.Data) {
@@ -507,7 +507,9 @@ export class ContratoGeneralService {
     }
   }
 
-  async getContratoTransformed(id: number): Promise<any> {
+  async getContratoTransformed(id: number, ids: boolean = false): Promise<any> {
+    console.log(typeof ids);
+
     this.logger.log(`Consultando contrato transformado para ID ${id}`);
     try {
       const contratoRaw = await this.consultarInfoContrato(id);
@@ -515,6 +517,7 @@ export class ContratoGeneralService {
       const [contratoTransformado] = await this.transformarContratos(
         [contratoRaw],
         cacheParametros,
+        ids,
       );
       return contratoTransformado;
     } catch (error) {
