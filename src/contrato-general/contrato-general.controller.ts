@@ -7,10 +7,14 @@ import {
   HttpException,
   Logger,
   Param,
+  Post,
+  Body,
+  ParseBoolPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { ContratoGeneralService } from './contrato-general.service';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
-import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { StandardResponse } from '../interfaces/responses.interface';
 import { ParametrosConsultarContratoDto } from './dto/params.dto';
 
@@ -26,6 +30,13 @@ export class ContratoGeneralController {
   @ApiOperation({
     summary: 'Retorna información de contrato-general por ID.',
   })
+  @ApiQuery({
+    name: 'ids',
+    type: Boolean,
+    required: false,
+    default: false,
+    description: 'Mostrar la información con sus respectivos ids',
+  })
   @ApiResponse({
     status: 200,
     description: 'Retorna detalle de un contrato-general.',
@@ -38,10 +49,13 @@ export class ContratoGeneralController {
   })
   async consultarInfoContrato(
     @Param(ValidationPipe) param: ParametrosConsultarContratoDto,
+    @Query('ids', new DefaultValuePipe(false), new ParseBoolPipe())
+    ids?: boolean,
   ): Promise<StandardResponse<any>> {
     try {
       const result = await this.contratoGeneralService.getContratoTransformed(
         +param.id,
+        ids,
       );
 
       return {
@@ -87,6 +101,135 @@ export class ContratoGeneralController {
   ): Promise<StandardResponse<any[]>> {
     try {
       const result = await this.contratoGeneralService.getAll(queryParams);
+
+      return {
+        Success: true,
+        Status: HttpStatus.OK,
+        Message: 'Contratos consultados exitosamente',
+        Data: result.Data,
+        Metadata: result.Metadata,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error en consultarContratos: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: `Error interno del servidor: ${error.message}`,
+          Data: null,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('consecutivo')
+  @ApiOperation({ summary: 'Generación de consecutivo del contrato' })
+  @ApiResponse({
+    status: 200,
+    description: 'Consecutivo del contrato generado exitosamente',
+  })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async generarConsecutivo(
+    @Body(ValidationPipe) body: any,
+  ): Promise<StandardResponse<any>> {
+    try {
+      const result = await this.contratoGeneralService.generarConsecutivo(body);
+
+      return {
+        Success: true,
+        Status: HttpStatus.OK,
+        Message: 'Consecutivo de contrato generado exitosamente',
+        Data: result,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al generar consecutivo del contrato: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: `Error interno del servidor: ${error.message}`,
+          Data: null,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('numero-contrato')
+  @ApiOperation({ summary: 'Generación de número de contrato' })
+  @ApiResponse({
+    status: 200,
+    description: 'Número de contrato generado exitosamente',
+  })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async generarNumeroContrato(
+    @Body(ValidationPipe) body: any,
+  ): Promise<StandardResponse<any>> {
+    try {
+      const result =
+        await this.contratoGeneralService.generarNumeroContrato(body);
+
+      return {
+        Success: true,
+        Status: HttpStatus.OK,
+        Message: 'Número de contrato generado exitosamente',
+        Data: result,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al generar número de contrato: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: `Error interno del servidor: ${error.message}`,
+          Data: null,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('/ids/separados')
+  @ApiOperation({
+    summary:
+      'Retorna información de contratos generales manteniendo los IDs originales',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de contratos generales con IDs y valores descriptivos',
+  })
+  async consultarContratosIdSeparados(
+    @Query(new ValidationPipe({ transform: true }))
+    queryParams: BaseQueryParamsDto,
+  ): Promise<StandardResponse<any[]>> {
+    try {
+      const result =
+        await this.contratoGeneralService.getAllWithIds(queryParams);
 
       return {
         Success: true,
