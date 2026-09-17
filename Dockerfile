@@ -1,4 +1,4 @@
-FROM sleavely/node-awscli:18.x
+FROM sleavely/node-awscli:24.x
 
 WORKDIR /
 COPY dist dist
