@@ -5,8 +5,9 @@ API MID intermediaria entre el cliente ARGOv2 y el CURD de ARGO V2.
 ## Especificaciones Técnicas
 
 ### Tecnologías Implementadas y Versiones
-* NodeJS 20
-* NestJS 10
+* NodeJS 24
+* NestJS 11
+* Typescript 5.9.3
 * [Docker](https://docs.docker.com/engine/install/)
 * [Docker Compose](https://docs.docker.com/compose/)
 
