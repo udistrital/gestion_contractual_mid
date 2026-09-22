@@ -19,6 +19,7 @@ ENDP_PARAMETROS_CRUD= [Endpoint parametros crud]
 ENDP_OIKOS_ESPACIOS_FISICOS= [Endpoint oikos]
 ENDP_PROVEEDORES_MID= [Endpoint de info proveedores]
 ENDP_TERCEROS_CRUD= [Endpoint terceros]
+ENDP_POLIZAS_CRUD= [Endpoint polizas crud]
 ```
 **NOTA:** Las variables se asignan en una archivo privado .env.
 
@@ -60,6 +61,12 @@ pnpm test
 
 pnpm test:cov
 # Validar la cobertura de las pruebas
+```
+
+Pruebas e2e
+```shell
+pnpm test:e2e
+# Ejecuta jest con configuración test/jest-e2e.json, levantando el AppModule completo
 ```
 
 ## Estado CI
