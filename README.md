@@ -66,12 +66,25 @@ pnpm test:cov
 Pruebas e2e
 ```shell
 pnpm test:e2e
-# Ejecuta jest con configuración test/jest-e2e.json, levantando el AppModule completo
+# Ejecuta jest con configuración test/jest-e2e.json
 ```
+Incluye `test/amparos-contratos.e2e-spec.ts`, que valida el endpoint GET /amparos-contratos/:contratoId, incluyendo respuestas exitosas, ausencia de amparos y errores del servicio externo.
+
+## Módulos
+
+### Amparos Contratos
+
+Migrado desde `poliza_mid`. Consulta los amparos asociados a un contrato, cruzando la información con los parámetros de tipo amparo (`TipoParametroId:118`).
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/amparos-contratos/:contratoId` | Obtiene los amparos del contrato indicado, resolviendo el nombre de cada amparo contra `ENDP_PARAMETROS_CRUD` |
+
+Depende de las variables de entorno `ENDP_POLIZAS_CRUD` y `ENDP_PARAMETROS_CRUD`.
 
 ## Estado CI
 
-EN PROCESO
+El pipeline definido en .drone.yml ejecuta las etapas install_dependencies y build sobre la imagen node:24-slim.
 
 ## Licencia
 
