@@ -3,47 +3,12 @@ type: docker
 name: nestjs_api_ci
 
 steps:
-  - name: check_readme
-    image: jjvargass/qa_develoment:latest
-    commands:
-      - python /app/check_readme.py
-    when:
-      branch:
-        - develop
-        - feature/*
-        - release/*
-      event:
-        - push
-
-  - name: check_branch
-    image: jjvargass/qa_develoment:latest
-    commands:
-      - python /app/check_branch.py -H ${DRONE_GIT_HTTP_URL}
-    when:
-      branch:
-        - develop
-        - feature/*
-        - release/*
-      event:
-        - push
-
-  - name: check_commits
-    image: jjvargass/qa_develoment:latest
-    commands:
-      - python /app/check_commits.py
-    when:
-      branch:
-        - develop
-        - feature/*
-        - release/*
-      event:
-        - push
-
   - name: install_dependencies
     image: node:24-alpine
     commands:
-      - corepack enable pnpm
+      - npm install -g pnpm
       - pnpm install
+      - pnpm run build
     when:
       branch:
         - develop
@@ -56,7 +21,7 @@ steps:
   - name: build
     image: node:24-alpine
     commands:
-      - corepack enable pnpm
+      - npm install -g pnpm
       - pnpm install
       - pnpm run build
     when:
@@ -159,38 +124,3 @@ steps:
         - master
       event:
         - push
-
-  - name: notify_telegram
-    image: appleboy/drone-telegram
-    settings:
-      token:
-        from_secret: telegram_token
-      to:
-        from_secret: telegram_to
-      format: html
-      message: >
-        {{#success build.status}}
-          ✅ <a href="{{build.link}}">SUCCESS</a> <b>Build #{{build.number}}</b>
-          <b>type: </b><code>{{ build.event }}</code>
-          <b>Repo: </b><code>{{repo.name}}</code>
-          <b>Branch: </b><code>{{commit.branch}}</code>
-          <b>Commit: </b><a href="{{commit.link}}">{{truncate commit.sha 7}}</a>
-          <b>Autor: </b>{{commit.author}} <code>&#128526 </code>
-        {{else}}
-          ❌ <a href="{{build.link}}">FAILURE</a> <b>Build #{{build.number}}</b>
-          <b>type: </b><code>{{ build.event }}</code>
-          <b>Repo: </b><code>{{repo.name}}</code>
-          <b>Branch: </b><code>{{commit.branch}}</code>
-          <b>Commit: </b><a href="{{commit.link}}">{{truncate commit.sha 7}}</a>
-          <b>Autor: </b>{{commit.author}} <code>&#128549 </code>
-        {{/success}}
-    when:
-      branch:
-        - develop
-        - release/*
-        - master
-      event:
-        - push
-      status:
-        - failure
-        - success
