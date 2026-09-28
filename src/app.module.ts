@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 
+import { AmparosContratosModule } from './amparos-contratos/amparos-contratos.module';
 import { CargueMasivoModule } from './cargue-masivo/cargue-masivo.module';
 import { ContratoGeneralModule } from './contrato-general/contrato-general.module';
 import { EspaciosFisicosModule } from './espacios-fisicos/espacios-fisicos.module';
@@ -18,6 +19,7 @@ import { SupervisoresModule } from './supervisor/supervisores.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    AmparosContratosModule,
     CargueMasivoModule,
     ContratoGeneralModule,
     EspaciosFisicosModule,

@@ -9,6 +9,24 @@ paths:
           description: ''
       tags:
         - App
+  /amparos-contratos/{contratoId}:
+    get:
+      operationId: AmparosContratosController_getAmparosByContratoId
+      parameters:
+        - name: contratoId
+          required: true
+          in: path
+          description: ID del contrato
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Amparos encontrados con éxito
+        '404':
+          description: Amparos no encontrados
+      summary: Obtener amparos por ID de contrato
+      tags:
+        - amparos-contratos
   /cargue-masivo/especificaciones-tecnicas:
     post:
       operationId: CargueMasivoController_cargueMasivo
@@ -58,10 +76,10 @@ paths:
           in: query
           description: Dirección del ordenamiento
           schema:
+            type: string
             enum:
               - ASC
               - DESC
-            type: string
         - name: limit
           required: false
           in: query
@@ -124,10 +142,10 @@ paths:
           in: query
           description: Dirección del ordenamiento
           schema:
+            type: string
             enum:
               - ASC
               - DESC
-            type: string
         - name: limit
           required: false
           in: query
@@ -275,10 +293,10 @@ paths:
           in: query
           description: Dirección del ordenamiento
           schema:
+            type: string
             enum:
               - ASC
               - DESC
-            type: string
         - name: limit
           required: false
           in: query
