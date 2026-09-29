@@ -19,7 +19,6 @@ ENDP_PARAMETROS_CRUD= [Endpoint parametros crud]
 ENDP_OIKOS_ESPACIOS_FISICOS= [Endpoint oikos]
 ENDP_PROVEEDORES_MID= [Endpoint de info proveedores]
 ENDP_TERCEROS_CRUD= [Endpoint terceros]
-ENDP_POLIZAS_CRUD= [Endpoint polizas crud]
 ```
 **NOTA:** Las variables se asignan en una archivo privado .env.
 
@@ -68,7 +67,15 @@ Pruebas e2e
 pnpm test:e2e
 # Ejecuta jest con configuración test/jest-e2e.json
 ```
-Incluye `test/amparos-contratos.e2e-spec.ts`, que valida el endpoint GET /amparos-contratos/:contratoId, incluyendo respuestas exitosas, ausencia de amparos y errores del servicio externo.
+Incluye `test/amparos-contratos.e2e-spec.ts` (service mockeado) y `test/amparos-contratos.nock-e2e-spec.ts` (CRUD y parámetros simulados con `nock`). Validan GET /amparos-contratos/:contratoId: respuestas exitosas, 400 por `contratoId` no entero, ausencia de amparos, reintentos y errores del servicio externo. No requieren servicios externos.
+
+Pruebas de integración (opt-in)
+```shell
+pnpm test:integration
+# Requiere CRUD de gestión contractual y parámetros accesibles según .env.
+# El contrato con amparos activos se toma de INTEGRATION_CONTRATO_ID (default 1).
+```
+Más detalle en [docs/amparos-contratos.md](docs/amparos-contratos.md).
 
 ## Módulos
 
@@ -80,7 +87,9 @@ Migrado desde `poliza_mid`. Consulta los amparos asociados a un contrato, cruzan
 |--------|----------|-------------|
 | GET | `/amparos-contratos/:contratoId` | Obtiene los amparos del contrato indicado, resolviendo el nombre de cada amparo contra `ENDP_PARAMETROS_CRUD` |
 
-Depende de las variables de entorno `ENDP_POLIZAS_CRUD` y `ENDP_PARAMETROS_CRUD`.
+Depende de las variables de entorno `ENDP_GESTION_CONTRACTUAL_CRUD` y `ENDP_PARAMETROS_CRUD`.
+
+Respuestas: `200` con amparos activos, `400` si `contratoId` no es un entero, `404` si el contrato no tiene amparos activos, `500` ante fallas de los servicios externos (3 reintentos con backoff). Documentación técnica en [docs/amparos-contratos.md](docs/amparos-contratos.md).
 
 ## Estado CI
 

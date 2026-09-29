@@ -22,6 +22,8 @@ paths:
       responses:
         '200':
           description: Amparos encontrados con éxito
+        '400':
+          description: contratoId no es un entero
         '404':
           description: Amparos no encontrados
       summary: Obtener amparos por ID de contrato

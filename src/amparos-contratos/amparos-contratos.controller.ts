@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   HttpStatus,
   HttpException,
   Logger,
@@ -30,13 +31,14 @@ export class AmparosContratosController {
     status: 200,
     description: 'Amparos encontrados con éxito',
   })
+  @ApiResponse({ status: 400, description: 'contratoId no es un entero' })
   @ApiResponse({ status: 404, description: 'Amparos no encontrados' })
   async getAmparosByContratoId(
-    @Param('contratoId') contratoId: string,
+    @Param('contratoId', ParseIntPipe) contratoId: number,
   ): Promise<StandardResponse<any[]>> {
     try {
       const result = await this.amparosContratosService.getAmparosByContratoId(
-        +contratoId,
+        contratoId,
       );
 
       return {
