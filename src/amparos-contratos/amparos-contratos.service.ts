@@ -11,17 +11,25 @@ import { ParametroResponse } from '../interfaces/responses.interface';
 @Injectable()
 export class AmparosContratosService {
   private readonly logger = new Logger(AmparosContratosService.name);
-  private readonly amparosAxiosInstance: AxiosInstance;
+  private readonly gestionContractualCrud: AxiosInstance;
   private readonly parametrosAxiosInstance: AxiosInstance;
 
-  constructor(private configService: ConfigService) {
-    this.amparosAxiosInstance = axios.create({
-      baseURL: this.configService.get<string>('ENDP_POLIZAS_CRUD'),
-      timeout: 5000,
-    });
+  constructor(private readonly configService: ConfigService) {
+    this.gestionContractualCrud = this.createAxiosInstance(
+      'ENDP_GESTION_CONTRACTUAL_CRUD',
+    );
+    this.parametrosAxiosInstance = this.createAxiosInstance(
+      'ENDP_PARAMETROS_CRUD',
+    );
+  }
 
-    this.parametrosAxiosInstance = axios.create({
-      baseURL: this.configService.get<string>('ENDP_PARAMETROS_CRUD'),
+  private createAxiosInstance(endpointKey: string): AxiosInstance {
+    const baseURL = this.configService.get<string>(endpointKey);
+    if (!baseURL) {
+      throw new Error(`Configuración faltante para ${endpointKey}`);
+    }
+    return axios.create({
+      baseURL,
       timeout: 5000,
     });
   }
@@ -58,20 +66,34 @@ export class AmparosContratosService {
         response.data.Data.map((param) => [param.Id, param.Nombre]),
       );
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
       this.logger.error(
-        `Error al obtener parámetros de amparo: ${error.message}`,
+        `Error al obtener parámetros de amparo: ${message}`,
       );
+
       throw error;
     }
   }
-
+  
   async getAmparosByContratoId(contratoId: number): Promise<any[]> {
     try {
+      // gestion_contractual_crud no expone amparos/contrato/:id; se filtra por
+      // contrato y se excluyen los amparos inactivos (soft delete).
       const amparosResponse = await this.fetchWithRetry(() =>
-        this.amparosAxiosInstance.get<any>(`/amparos/contrato/${contratoId}`),
+        this.gestionContractualCrud.get<any>('amparos-polizas', {
+          params: {
+            query: JSON.stringify({
+              contrato_general_id: contratoId,
+              activo: true,
+            }),
+            limit: 0,
+          },
+        }),
       );
 
-      if (!amparosResponse.data?.Data) {
+      const amparos = amparosResponse.data?.Data;
+      if (!Array.isArray(amparos) || amparos.length === 0) {
         throw new NotFoundException(
           `No se encontraron amparos para el contrato ${contratoId}`,
         );
@@ -79,21 +101,23 @@ export class AmparosContratosService {
 
       const amparosMap = await this.obtenerParametrosAmparo();
 
-      return amparosResponse.data.Data.map((amparo: any) => ({
+      return amparos.map((amparo: any) => ({
         ...amparo,
         amparo: amparosMap.get(amparo.amparo_id) || null,
       }));
     } catch (error) {
-      this.logger.error(
-        `Error al consultar amparos del contrato ${contratoId}:`,
-        error,
-      );
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        `Error al consultar amparos del contrato: ${error.message}`,
-      );
+    this.logger.error(
+      `Error al consultar amparos del contrato ${contratoId}:`,
+      error,
+    );
+
+    if (error instanceof NotFoundException) {
+      throw error;
     }
+
+    throw new InternalServerErrorException(
+      'Error al consultar amparos del contrato',
+    );
+  }
   }
 }
