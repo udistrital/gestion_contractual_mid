@@ -387,6 +387,208 @@ paths:
       summary: Retorna información de Supervisor por ID de contrato.
       tags:
         - Supervisores
+  /polizas:
+    get:
+      operationId: PolizasController_consultar
+      parameters:
+        - name: include
+          required: false
+          in: query
+          schema: {}
+        - name: fields
+          required: false
+          in: query
+          schema: {}
+        - name: orderBy
+          required: false
+          in: query
+          schema:
+            enum:
+              - ASC
+              - DESC
+            type: string
+        - name: sortBy
+          required: false
+          in: query
+          schema: {}
+        - name: offset
+          required: false
+          in: query
+          schema: {}
+        - name: limit
+          required: false
+          in: query
+          schema: {}
+        - name: query
+          required: false
+          in: query
+          description: Filtro JSON, ej. {"contrato_general_id":1,"activo":true}
+          schema: {}
+      responses:
+        '200':
+          description: Pólizas encontradas
+        '400':
+          description: Parámetros inválidos (CRUD)
+      summary: Consultar pólizas (reenvía a gestion_contractual_crud)
+      tags: &ref_2
+        - polizas
+    post:
+      operationId: PolizasController_crear
+      parameters: []
+      requestBody:
+        required: true
+        description: Mismo body que POST /polizas del CRUD (CrearPolizaDto)
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        '201':
+          description: Póliza creada
+        '400':
+          description: Body inválido (CRUD)
+        '404':
+          description: Contrato no encontrado (CRUD)
+      summary: Crear póliza (reenvía a gestion_contractual_crud)
+      tags: *ref_2
+  /polizas/{id}:
+    put:
+      operationId: PolizasController_actualizar
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la póliza
+          schema:
+            type: number
+      requestBody:
+        required: true
+        description: Mismo body que PUT /polizas/:id del CRUD (parcial)
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Póliza actualizada
+        '400':
+          description: id no entero o body inválido
+        '404':
+          description: Póliza no encontrada (CRUD)
+      summary: Actualizar póliza (reenvía a gestion_contractual_crud)
+      tags: *ref_2
+  /amparos-polizas:
+    get:
+      operationId: AmparosPolizasController_consultar
+      parameters:
+        - name: include
+          required: false
+          in: query
+          schema: {}
+        - name: fields
+          required: false
+          in: query
+          schema: {}
+        - name: orderBy
+          required: false
+          in: query
+          schema:
+            enum:
+              - ASC
+              - DESC
+            type: string
+        - name: sortBy
+          required: false
+          in: query
+          schema: {}
+        - name: offset
+          required: false
+          in: query
+          schema: {}
+        - name: limit
+          required: false
+          in: query
+          schema: {}
+        - name: query
+          required: false
+          in: query
+          description: Filtro JSON, ej. {"contrato_general_id":1,"activo":true}
+          schema: {}
+      responses:
+        '200':
+          description: Amparos encontrados
+        '400':
+          description: Parámetros inválidos (CRUD)
+      summary: Consultar amparos de pólizas (reenvía a gestion_contractual_crud)
+      tags: &ref_3
+        - amparos-polizas
+    post:
+      operationId: AmparosPolizasController_crear
+      parameters: []
+      requestBody:
+        required: true
+        description: >-
+          Arreglo con el mismo formato que POST /amparos-polizas del CRUD
+          (CrearAmparoPolizaDto[])
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        '201':
+          description: Todos los amparos creados
+        '206':
+          description: 'Creación parcial: Data = { creados, errores }'
+        '400':
+          description: Body inválido (CRUD)
+      summary: Crear amparos en lote (reenvía a gestion_contractual_crud)
+      tags: *ref_3
+  /amparos-polizas/{id}:
+    put:
+      operationId: AmparosPolizasController_actualizar
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del amparo
+          schema:
+            type: number
+      requestBody:
+        required: true
+        description: Mismo body que PUT /amparos-polizas/:id del CRUD (parcial)
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Amparo actualizado
+        '400':
+          description: id no entero o body inválido
+        '404':
+          description: Amparo no encontrado (CRUD)
+      summary: >-
+        Actualizar amparo o vincularlo a una póliza (reenvía a
+        gestion_contractual_crud)
+      tags: *ref_3
+    delete:
+      operationId: AmparosPolizasController_eliminar
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del amparo
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Amparo eliminado (activo=false)
+        '400':
+          description: id no entero
+        '404':
+          description: Amparo no encontrado (CRUD)
+      summary: Eliminar amparo, borrado lógico (reenvía a gestion_contractual_crud)
+      tags: *ref_3
 info:
   title: Gestion Contractual API MID
   description: API
