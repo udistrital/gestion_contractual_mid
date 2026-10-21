@@ -498,6 +498,50 @@
         ]
       }
     },
+    "/parametros": {
+      "get": {
+        "operationId": "ParametrosController_obtenerParametrosPorTipo",
+        "parameters": [
+          {
+            "name": "ids",
+            "required": true,
+            "in": "path",
+            "description": "ID del/los tipo(s) de parámetro(s) solicitado(s) separados por coma",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna los listados de parámetros solicitados."
+          },
+          "400": {
+            "description": "Error en la solicitud."
+          }
+        },
+        "summary": "Retorna los parámetros de los tipos indicados por ls IDs.",
+        "tags": [
+          "Parametros"
+        ]
+      },
+      "delete": {
+        "operationId": "ParametrosController_limpiarCacheParametros",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retorna el estado final de la solicitud."
+          },
+          "400": {
+            "description": "Error en la solicitud."
+          }
+        },
+        "summary": "Limpia la memoria caché de los tipos de parámetro.",
+        "tags": [
+          "Parametros"
+        ]
+      }
+    },
     "/variables-clausulas": {
       "get": {
         "operationId": "VariablesClausulasController_encontrarContratista",

@@ -323,6 +323,34 @@ paths:
       summary: Retorna información sobre el estado de los contratos
       tags:
         - Estados
+  /parametros:
+    get:
+      operationId: ParametrosController_obtenerParametrosPorTipo
+      parameters:
+        - name: ids
+          required: true
+          in: path
+          description: ID del/los tipo(s) de parámetro(s) solicitado(s) separados por coma
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Retorna los listados de parámetros solicitados.
+        '400':
+          description: Error en la solicitud.
+      summary: Retorna los parámetros de los tipos indicados por ls IDs.
+      tags: &ref_2
+        - Parametros
+    delete:
+      operationId: ParametrosController_limpiarCacheParametros
+      parameters: []
+      responses:
+        '200':
+          description: Retorna el estado final de la solicitud.
+        '400':
+          description: Error en la solicitud.
+      summary: Limpia la memoria caché de los tipos de parámetro.
+      tags: *ref_2
   /variables-clausulas:
     get:
       operationId: VariablesClausulasController_encontrarContratista
