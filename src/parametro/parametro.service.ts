@@ -95,6 +95,21 @@ export class ParametroService {
     return parametros;
   }
 
+  async getParametrosIndexados(ids: string[]) {
+    const indexados = new Map<number, Map<number, ParametroBase>>();
+    const parametros = await this.getParametrosPorTipoId(ids);
+
+    for (const [tipoId, listaParametros] of Object.entries(parametros)) {
+      const mapaInterno = new Map<number, ParametroBase>();
+      for (const parametro of listaParametros) {
+        mapaInterno.set(parametro.Id, parametro);
+      }
+
+      indexados.set(Number(tipoId), mapaInterno);
+    }
+    return indexados;
+  }
+
   limpiarCache() {
     this.cacheManager.clear();
   }

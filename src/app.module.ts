@@ -22,7 +22,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     }),
     CacheModule.register({
       isGlobal: true,
-      ttl: 43200000, // 12 horas
+      ttl: 14400000, // 4 horas
     }),
     AmparosContratosModule,
     CargueMasivoModule,
