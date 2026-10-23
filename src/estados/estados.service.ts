@@ -11,28 +11,27 @@ import {
   PaginatedResponse,
   ResponseMetadata,
   UsuarioResponse,
-  ParametroResponse,
+  ParametroBase,
 } from '../interfaces/responses.interface';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
+import { ParametroService } from '../parametro/parametro.service';
 
 @Injectable()
 export class EstadosService {
   private readonly logger = new Logger(EstadosService.name);
   private readonly axiosInstance: AxiosInstance;
-  private readonly parametrosAxiosInstance: AxiosInstance;
   private readonly idsTipoParametro = {
     estadosGenerales: 137,
     estadosInternos: 141,
   } as const;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private readonly parametroService: ParametroService,
+  ) {
     const timeout = 5000;
     this.axiosInstance = this.createAxiosInstance(
       'ENDP_GESTION_CONTRACTUAL_CRUD',
-      timeout,
-    );
-    this.parametrosAxiosInstance = this.createAxiosInstance(
-      'ENDP_PARAMETROS_CRUD',
       timeout,
     );
   }
@@ -63,45 +62,17 @@ export class EstadosService {
     }
   }
 
-  private async obtenerParametrosPorTipo(
-    tipoParametroId: number,
-  ): Promise<Map<number, string>> {
-    try {
-      const response = await this.fetchWithRetry(() =>
-        this.parametrosAxiosInstance.get<ParametroResponse>(
-          `parametro?query=TipoParametroId:${tipoParametroId}&limit=0`,
-        ),
-      );
-      if (response.data.Status !== '200' || !response.data.Data) {
-        throw new Error('Respuesta inválida del servidor de parámetros');
-      }
-      return new Map(
-        response.data.Data.map((param) => [param.Id, param.Nombre]),
-      );
-    } catch (error) {
-      this.logger.error(
-        `Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`,
-      );
-      throw error;
-    }
-  }
-
   private async obtenerEstadosPorTipoParametro(): Promise<
-    Map<number, Map<number, string>>
+    Map<number, Map<number, ParametroBase>>
   > {
-    const estadosPorTipoParametro = new Map<number, Map<number, string>>();
-    await Promise.all(
-      Object.values(this.idsTipoParametro).map(async (tipoParametroId) => {
-        const parametros = await this.obtenerParametrosPorTipo(tipoParametroId);
-        estadosPorTipoParametro.set(tipoParametroId, parametros);
-      }),
+    return this.parametroService.getParametrosIndexados(
+      Object.values(this.idsTipoParametro).map(String),
     );
-    return estadosPorTipoParametro;
   }
 
   private async transformarEstados(
     estados: any[],
-    estadosPorTipoParametro: Map<number, Map<number, string>>,
+    estadosPorTipoParametro: Map<number, Map<number, ParametroBase>>,
   ): Promise<any[]> {
     return await Promise.all(
       estados.map(async (estado) => {
@@ -115,8 +86,8 @@ export class EstadosService {
           estadoTransformado.estado_parametro_id != null
         ) {
           estadoTransformado.estado_parametro_id =
-            estadosGenerales.get(estadoTransformado.estado_parametro_id) ||
-            estadoTransformado.estado_parametro_id;
+            estadosGenerales.get(estadoTransformado.estado_parametro_id)
+              ?.Nombre ?? estadoTransformado.estado_parametro_id;
         }
 
         const estadosInternos = estadosPorTipoParametro.get(
@@ -127,9 +98,8 @@ export class EstadosService {
           estadoTransformado.estado_interno_parametro_id != null
         ) {
           estadoTransformado.estado_interno_parametro_id =
-            estadosInternos.get(
-              estadoTransformado.estado_interno_parametro_id,
-            ) || estadoTransformado.estado_interno_parametro_id;
+            estadosInternos.get(estadoTransformado.estado_interno_parametro_id)
+              ?.Nombre ?? estadoTransformado.estado_interno_parametro_id;
         }
 
         // Agregar nombre de usuario
