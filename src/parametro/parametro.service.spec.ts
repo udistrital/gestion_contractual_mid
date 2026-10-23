@@ -171,4 +171,35 @@ describe('ParametroService', () => {
     expect(cache.clear).toHaveBeenCalled();
     expect(cache.almacen.size).toBe(0);
   });
+
+  it('solicita ParametroPadreId al CRUD junto con los demás campos', async () => {
+    crudGetMock.mockResolvedValue(respuestaCrud([{ Id: 1, Nombre: 'Uno' }]));
+
+    await service.getParametrosPorTipoId(['112']);
+
+    expect(crudGetMock).toHaveBeenCalledWith('parametro', {
+      params: {
+        query: 'TipoParametroId.Id:112',
+        fields:
+          'Id,Nombre,Descripcion,CodigoAbreviacion,Activo,ParametroPadreId',
+        limit: 0,
+      },
+    });
+  });
+
+  it('conserva ParametroPadreId en la respuesta y en la caché', async () => {
+    const tipoContrato = {
+      Id: 6540,
+      Nombre: 'Prestación de servicios',
+      ParametroPadreId: { Id: 6535 },
+    };
+    crudGetMock.mockResolvedValue(respuestaCrud([tipoContrato]));
+
+    const primera = await service.getParametrosPorTipoId(['112']);
+    const segunda = await service.getParametrosPorTipoId(['112']);
+
+    expect(primera['112'][0].ParametroPadreId).toEqual({ Id: 6535 });
+    expect(segunda['112'][0].ParametroPadreId).toEqual({ Id: 6535 });
+    expect(crudGetMock).toHaveBeenCalledTimes(1);
+  });
 });

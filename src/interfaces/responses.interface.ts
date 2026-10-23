@@ -152,4 +152,6 @@ export interface ParametroBase {
   Nombre: string;
   Descripcion: string;
   CodigoAbreviacion: string;
+  Activo?: boolean;
+  ParametroPadreId?: ParametroBase | null;
 }

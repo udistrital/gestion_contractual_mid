@@ -91,7 +91,8 @@ export class ParametroService {
             {
               params: {
                 query: `TipoParametroId.Id:${id}`, //,Activo:true
-                fields: 'Id,Nombre,Descripcion,CodigoAbreviacion,Activo',
+                fields:
+                  'Id,Nombre,Descripcion,CodigoAbreviacion,Activo,ParametroPadreId',
                 limit: 0,
               },
             },
