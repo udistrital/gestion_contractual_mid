@@ -15,7 +15,7 @@ import {
 } from '../interfaces/responses.interface';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { datos } from './conf';
-import { ParametroService } from 'src/parametro/parametro.service';
+import { ParametroService } from '../parametro/parametro.service';
 
 @Injectable()
 export class ContratoGeneralService {
@@ -133,14 +133,14 @@ export class ContratoGeneralService {
         const contratoTransformado = { ...contratoRaw };
 
         Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
-          if (contratoRaw[key] !== undefined && key.endsWith('_id')) {
+          if (contratoRaw[key] != null && key.endsWith('_id')) {
             const parametrosMap = cacheParametros.get(tipoParametroId);
             const newKey = key.replace('_id', '');
 
             if (parametrosMap && parametrosMap.has(contratoRaw[key])) {
               contratoTransformado[ids ? newKey : key] = parametrosMap.get(
                 contratoRaw[key],
-              ).Nombre;
+              )?.Nombre;
             }
           }
         });
@@ -151,14 +151,14 @@ export class ContratoGeneralService {
           );
           if (
             estadoParametroMap &&
-            contratoTransformado.estados.estado_parametro_id !== null
+            contratoTransformado.estados.estado_parametro_id != null
           ) {
             ids
               ? contratoTransformado.estados.estado_parametro
               : (contratoTransformado.estados.estado_parametro_id =
                   estadoParametroMap.get(
                     contratoTransformado.estados.estado_parametro_id,
-                  ).Nombre || contratoTransformado.estados.estado_parametro_id);
+                  )?.Nombre ?? contratoTransformado.estados.estado_parametro_id);
           }
         }
 
@@ -168,14 +168,14 @@ export class ContratoGeneralService {
           );
           if (
             tipoPersonaMap &&
-            contratoTransformado.contratista.tipo_persona_id !== null
+            contratoTransformado.contratista.tipo_persona_id != null
           ) {
             ids
               ? contratoTransformado.contratista.tipo_persona
               : (contratoTransformado.contratista.tipo_persona_id =
                   tipoPersonaMap.get(
                     contratoTransformado.contratista.tipo_persona_id,
-                  ).Nombre || contratoTransformado.contratista.tipo_persona_id);
+                  )?.Nombre ?? contratoTransformado.contratista.tipo_persona_id);
           }
         }
 
@@ -207,13 +207,13 @@ export class ContratoGeneralService {
         };
 
         Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
-          if (contratoRaw[key] !== undefined) {
+          if (contratoRaw[key] != null) {
             const parametrosMap = cacheParametros.get(tipoParametroId);
             if (parametrosMap && parametrosMap.has(contratoRaw[key])) {
               contratoTransformado[key] = contratoRaw[key];
               contratoTransformado[key.replace('_id', '')] = parametrosMap.get(
                 contratoRaw[key],
-              ).Nombre;
+              )?.Nombre;
             }
           }
         });
@@ -244,8 +244,8 @@ export class ContratoGeneralService {
             contratoTransformado.estados.estado_parametro_id =
               contratoRaw.estados.estado_parametro_id;
             contratoTransformado.estados.estado_parametro =
-              estadoParametroMap.get(contratoRaw.estados.estado_parametro_id).Nombre ||
-              contratoRaw.estados.estado_parametro_id;
+              estadoParametroMap.get(contratoRaw.estados.estado_parametro_id)
+                ?.Nombre ?? contratoRaw.estados.estado_parametro_id;
           }
 
           [
@@ -279,8 +279,8 @@ export class ContratoGeneralService {
             contratoTransformado.contratista.tipo_persona_id =
               contratoRaw.contratista.tipo_persona_id;
             contratoTransformado.contratista.tipo_persona =
-              tipoPersonaMap.get(contratoRaw.contratista.tipo_persona_id).Nombre ||
-              contratoRaw.contratista.tipo_persona_id;
+              tipoPersonaMap.get(contratoRaw.contratista.tipo_persona_id)
+                ?.Nombre ?? contratoRaw.contratista.tipo_persona_id;
           }
 
           if (contratoRaw.contratista.clase_contratista_id) {
@@ -293,7 +293,7 @@ export class ContratoGeneralService {
               contratoTransformado.contratista.clase_contratista =
                 claseContratistaMap.get(
                   contratoRaw.contratista.clase_contratista_id,
-                ).Nombre || contratoRaw.contratista.clase_contratista_id;
+                )?.Nombre ?? contratoRaw.contratista.clase_contratista_id;
             }
           }
 
@@ -481,8 +481,6 @@ export class ContratoGeneralService {
   }
 
   async getContratoTransformed(id: number, ids: boolean = false): Promise<any> {
-    console.log(typeof ids, ids);
-
     this.logger.log(`Consultando contrato transformado para ID ${id}`);
     try {
       const contratoRaw = await this.consultarInfoContrato(id);
