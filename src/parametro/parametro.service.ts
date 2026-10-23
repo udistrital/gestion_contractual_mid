@@ -15,11 +15,27 @@ export class ParametroService {
   ) {
     this.axiosInstance = axios.create({
       baseURL: this.configService.get<string>('ENDP_PARAMETROS_CRUD'),
-      timeout: 1000, // 1 segundo de timeout
+      timeout: 5000,
       headers: {
         'Content-Type': 'application/json',
       },
     });
+  }
+
+  private async fetchWithRetry<T>(
+    axiosCall: () => Promise<T>,
+    retries = 3,
+    delay = 1000,
+  ): Promise<T> {
+    try {
+      return await axiosCall();
+    } catch (error) {
+      if (retries > 0 && axios.isAxiosError(error)) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
+      }
+      throw error;
+    }
   }
 
   getParametro(
@@ -69,8 +85,8 @@ export class ParametroService {
 
     await Promise.all(
       noEncontrados.map(async (id) => {
-        const res =
-          await this.axiosInstance.get<StandardResponse<ParametroBase[]>>(
+        const res = await this.fetchWithRetry(() =>
+          this.axiosInstance.get<StandardResponse<ParametroBase[]>>(
             'parametro',
             {
               params: {
@@ -79,15 +95,29 @@ export class ParametroService {
                 limit: 0,
               },
             },
-          );
+          ),
+        );
 
-        const listaParametros = res.data.Data ?? [];
+        if (res.data?.Success === false || !Array.isArray(res.data?.Data)) {
+          throw new Error(
+            `Respuesta inválida del servidor de parámetros para el tipo ${id}`,
+          );
+        }
+
+        // parametros_crud responde [{}] cuando el tipo no tiene registros
+        const listaParametros = res.data.Data.filter(
+          (parametro) => parametro?.Id != null,
+        );
+        parametros[id] = listaParametros;
+
+        if (listaParametros.length === 0) {
+          return;
+        }
+
         const parametrosPorTipo: Record<string, ParametroBase> = {};
         for (const parametro of listaParametros) {
           parametrosPorTipo[parametro.Id.toString()] = parametro;
         }
-
-        parametros[id] = listaParametros;
         await this.cacheManager.set(id, parametrosPorTipo);
       }),
     );
