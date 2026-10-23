@@ -12,12 +12,17 @@ import { ParametroModule } from './parametro/parametro.module';
 import { VariablesClausulasModule } from './variables-clausulas/variables-clausulas.module';
 import { OrdenadoresModule } from './ordenador/ordenadores.module';
 import { SupervisoresModule } from './supervisor/supervisores.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }),
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 14400000, // 4 horas
     }),
     AmparosContratosModule,
     CargueMasivoModule,

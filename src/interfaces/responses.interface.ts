@@ -146,3 +146,12 @@ export interface VariablesResponse {
   direccion: string;
   correo: string;
 }
+
+export interface ParametroBase {
+  Id: number;
+  Nombre: string;
+  Descripcion: string;
+  CodigoAbreviacion: string;
+  Activo?: boolean;
+  ParametroPadreId?: ParametroBase | null;
+}
