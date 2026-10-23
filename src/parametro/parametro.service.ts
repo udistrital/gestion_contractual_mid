@@ -141,7 +141,7 @@ export class ParametroService {
     return indexados;
   }
 
-  limpiarCache() {
-    this.cacheManager.clear();
+  async limpiarCache(): Promise<void> {
+    await this.cacheManager.clear();
   }
 }
