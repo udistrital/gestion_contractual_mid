@@ -177,6 +177,15 @@ pnpm test:cov
 pnpm test:e2e
 ```
 
+Pruebas e2e de parámetros y estados:
+
+| Suite | Qué valida |
+|-------|------------|
+| `test/parametros.e2e-spec.ts` | `GET /parametros` y `DELETE /parametros` de punta a punta: respuesta `200` con `ParametroPadreId`, campos y filtros enviados al CRUD, uso de la caché (solo se consultan los tipos que faltan), limpieza con `DELETE`, `[{}]` no se guarda en caché, `400` por `ids` inválidos, reintento ante un fallo, `500` sin exponer el error y respuestas con `Success: false` sin guardar en caché |
+| `test/estados.e2e-spec.ts` | `GET /estados` de punta a punta: respuesta igual a la de `develop` (nombres resueltos, ids inexistentes y `null` conservados), tipos 137 y 141 tomados de la caché en la segunda petición, filtros y paginación reenviados al CRUD, consulta a terceros solo para estados con usuario y `500` si `parametros_crud` no responde |
+
+Estas suites levantan los módulos reales del MID y simulan `parametros_crud`, `gestion_contractual_crud` y `terceros_crud` con un servidor HTTP local dentro de la propia prueba (`test/utils/crud-simulado.ts`). No requieren VPN ni servicios externos; asignan sus propias variables `ENDP_*`. Los casos de `500` tardan unos 7 s cada uno por los reintentos con backoff.
+
 ## Licencia
 
 This file is part of gestion_contractual_mid.
