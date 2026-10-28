@@ -69,7 +69,7 @@ pnpm test:e2e
 ```
 Incluye `test/amparos-contratos.e2e-spec.ts` (service mockeado) y `test/amparos-contratos.nock-e2e-spec.ts` (CRUD y parámetros simulados con `nock`). Validan GET /amparos-contratos/:contratoId: respuestas exitosas, 400 por `contratoId` no entero, ausencia de amparos, reintentos y errores del servicio externo. No requieren servicios externos.
 
-También incluye `test/polizas.nock-e2e-spec.ts` (CRUD simulado con `nock`). Valida que `polizas` y `amparos-polizas` reenvían ruta, query, body, status (200, 201, 206, 400, 404, 500) y sobre de respuesta del CRUD, que un id no entero no llega al CRUD y que las escrituras no se reintentan.
+También incluye `test/polizas.nock-e2e-spec.ts` (CRUD simulado con `nock`). Valida que `polizas` y `amparos-polizas` reenvían ruta, query, body, status (200, 201, 400, 404, 500) y sobre de respuesta del CRUD, que un id no entero no llega al CRUD y que las escrituras no se reintentan.
 
 Pruebas de integración (opt-in)
 ```shell
@@ -98,7 +98,7 @@ Respuestas: `200` con amparos activos, `400` si `contratoId` no es un entero, `4
 
 ### Pólizas y Amparos de Pólizas
 
-Intermediario entre `gestion_contractual_mf` y `gestion_contractual_crud` para registrar y consultar pólizas y sus amparos, según la arquitectura OAS (MF → MID → CRUD). Reenvía la petición al CRUD con la misma ruta, query y body, y devuelve el mismo status y sobre de respuesta (`Success`, `Status`, `Message`, `Data`, `Metadata`).
+Intermediario entre `gestion_contractual_mf` y `gestion_contractual_crud` para registrar y consultar pólizas y sus amparos, según la arquitectura OAS (MF → MID → CRUD). Reenvía la petición al CRUD con la misma ruta, query y body, y devuelve el mismo sobre de respuesta (`Success`, `Status`, `Message`, `Data`, `Metadata`). El status HTTP lo define el MID (como en los demás controladores); el status del CRUD queda en el campo `Status` del body.
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
@@ -106,13 +106,13 @@ Intermediario entre `gestion_contractual_mf` y `gestion_contractual_crud` para r
 | POST | `/polizas` | Crea una póliza |
 | PUT | `/polizas/:id` | Actualiza una póliza |
 | GET | `/amparos-polizas` | Consulta amparos. Admite los mismos parámetros que `/polizas` |
-| POST | `/amparos-polizas` | Crea amparos en lote (arreglo). `201`, o `206` si la creación es parcial |
+| POST | `/amparos-polizas` | Crea amparos en lote (arreglo). `201`; si la creación es parcial el HTTP sigue siendo `201` y el body trae `Status: 206` |
 | PUT | `/amparos-polizas/:id` | Actualiza un amparo o lo vincula a una póliza (`poliza_id`) |
 | DELETE | `/amparos-polizas/:id` | Borrado lógico de un amparo |
 
 Depende de la variable de entorno `ENDP_GESTION_CONTRACTUAL_CRUD`.
 
-Respuestas: las del CRUD (`200`, `201`, `206`, `400`, `404`, `500`), `400` si `:id` no es un entero (no se consulta el CRUD) y `500` si el CRUD no responde. Solo las consultas (GET) se reintentan (3 reintentos con backoff, únicamente ante fallas sin respuesta o `5xx`); las escrituras no se reintentan para no duplicar registros.
+Respuestas: las del CRUD (`200`, `201`, `400`, `404`, `500`), `400` si `:id` no es un entero (no se consulta el CRUD) y `500` si el CRUD no responde. Solo las consultas (GET) se reintentan (3 reintentos con backoff, únicamente ante fallas sin respuesta o `5xx`); las escrituras no se reintentan para no duplicar registros.
 
 ## Estado CI
 
