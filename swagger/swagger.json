@@ -821,10 +821,7 @@
         },
         "responses": {
           "201": {
-            "description": "Todos los amparos creados"
-          },
-          "206": {
-            "description": "Creación parcial: Data = { creados, errores }"
+            "description": "Amparos creados; en creación parcial el body trae Status = 206 y Data = { creados, errores }"
           },
           "400": {
             "description": "Body inválido (CRUD)"

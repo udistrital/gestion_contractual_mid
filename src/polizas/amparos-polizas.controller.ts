@@ -83,11 +83,10 @@ export class AmparosPolizasController {
     description:
       'Arreglo con el mismo formato que POST /amparos-polizas del CRUD (CrearAmparoPolizaDto[])',
   })
-  @ApiResponse({ status: 201, description: 'Todos los amparos creados' })
   @ApiResponse({
     status: 201,
     description:
-      'Respuesta del CRUD; en creación parcial Status = 206 y Data = { creados, errores }',
+      'Amparos creados; en creación parcial el body trae Status = 206 y Data = { creados, errores }',
   })
   @ApiResponse({ status: 400, description: 'Body inválido (CRUD)' })
   async crear(@Body() body: any) {
