@@ -13,6 +13,7 @@ import { VariablesClausulasModule } from './variables-clausulas/variables-clausu
 import { OrdenadoresModule } from './ordenador/ordenadores.module';
 import { SupervisoresModule } from './supervisor/supervisores.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { PolizasModule } from './polizas/polizas.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     VariablesClausulasModule,
     OrdenadoresModule,
     SupervisoresModule,
+    PolizasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
