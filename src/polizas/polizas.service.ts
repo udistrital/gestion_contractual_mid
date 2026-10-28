@@ -8,7 +8,7 @@ export interface RespuestaCrud {
 }
 
 // Intermediario entre el MF y gestion_contractual_crud para pólizas y amparos
-// (#360). Reenvía query, body, status y sobre de respuesta sin transformarlos,
+// (#360). Reenvía query, body y sobre de respuesta sin transformarlos,
 // para que el MF consuma el MID con el mismo contrato que tenía el CRUD.
 @Injectable()
 export class PolizasService {
