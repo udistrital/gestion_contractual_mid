@@ -32,7 +32,7 @@ describe('AmparosContratosController', () => {
     const data = [{ id: 1, amparo: 'Cumplimiento' }];
     service.getAmparosByContratoId.mockResolvedValue(data);
 
-    const result = await controller.getAmparosByContratoId('10');
+    const result = await controller.getAmparosByContratoId(10);
 
     expect(service.getAmparosByContratoId).toHaveBeenCalledWith(10);
     expect(result).toEqual({
@@ -47,7 +47,7 @@ describe('AmparosContratosController', () => {
     const notFound = new NotFoundException('No se encontraron amparos');
     service.getAmparosByContratoId.mockRejectedValue(notFound);
 
-    await expect(controller.getAmparosByContratoId('10')).rejects.toBe(
+    await expect(controller.getAmparosByContratoId(10)).rejects.toBe(
       notFound,
     );
   });
@@ -58,7 +58,7 @@ describe('AmparosContratosController', () => {
     );
 
     await expect(
-      controller.getAmparosByContratoId('10'),
+      controller.getAmparosByContratoId(10),
     ).rejects.toMatchObject({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       response: {

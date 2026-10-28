@@ -12,6 +12,7 @@ import { ParametroModule } from './parametro/parametro.module';
 import { VariablesClausulasModule } from './variables-clausulas/variables-clausulas.module';
 import { OrdenadoresModule } from './ordenador/ordenadores.module';
 import { SupervisoresModule } from './supervisor/supervisores.module';
+import { PolizasModule } from './polizas/polizas.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SupervisoresModule } from './supervisor/supervisores.module';
     VariablesClausulasModule,
     OrdenadoresModule,
     SupervisoresModule,
+    PolizasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
