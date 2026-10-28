@@ -153,7 +153,7 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
       expect(crud.isDone()).toBe(true);
     });
 
-    it('POST 206: conserva la creación parcial del CRUD', async () => {
+    it('POST parcial: conserva el body de creación parcial del CRUD (HTTP 201)', async () => {
       const amparos = [
         { contrato_general_id: 10, amparo_id: 6602 },
         { contrato_general_id: 10, amparo_id: 0 },
@@ -168,7 +168,7 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
       const res = await request(app.getHttpServer())
         .post('/amparos-polizas')
         .send(amparos)
-        .expect(206);
+        .expect(201);
 
       expect(res.body).toEqual(body);
     });
