@@ -4,9 +4,11 @@ import axios, { AxiosInstance } from 'axios';
 import {
   CDPResponse,
   LugarEjecucionResponse,
+  ParametroBase,
   ProveedorResponse,
   StandardResponse,
 } from 'src/interfaces/responses.interface';
+import { ParametroService } from 'src/parametro/parametro.service';
 
 interface ContratoResponse {
   Status: string;
@@ -175,13 +177,10 @@ export class VariablesClausulasService {
     sede_id: 301, ///
   } as const;
 
-  constructor(private configService: ConfigService) {
-    const parametrosEndpoint =
-      this.configService.get<string>('ENDP_PARAMETROS');
-    this.parametrosAxiosInstance = axios.create({
-      baseURL: parametrosEndpoint,
-    });
-  }
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly parametroService: ParametroService
+  ) { }
 
   private async obtenerParametrosPorTipo(
     tipoParametroId: number,
@@ -197,7 +196,7 @@ export class VariablesClausulasService {
       }
 
       return new Map(data.Data.map((param) => [param.Id, param.Nombre]));
-    } catch (error) {
+    } catch (error: any) {
       console.error(
         `Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`,
       );
@@ -206,17 +205,13 @@ export class VariablesClausulasService {
   }
 
   private async cargarCacheParametros(): Promise<
-    Map<number, Map<number, string>>
+    Map<number, Map<number, ParametroBase>>
   > {
-    const tiposParametros = new Set(Object.values(this.parameterMap));
-    const cacheParametros = new Map<number, Map<number, string>>();
+    const tiposParametros = new Array(Object.values(this.parameterMap))[0];
+    
+    const tiposParametrosIds = tiposParametros.map(t => t.toString())
 
-    await Promise.all(
-      Array.from(tiposParametros).map(async (tipoParametroId) => {
-        const parametros = await this.obtenerParametrosPorTipo(tipoParametroId);
-        cacheParametros.set(tipoParametroId, parametros);
-      }),
-    );
+    const cacheParametros = await this.parametroService.getParametrosIndexados(tiposParametrosIds);
 
     return cacheParametros;
   }
@@ -305,7 +300,7 @@ export class VariablesClausulasService {
         Message: 'Variables de contrato encontradas',
         Data: filteredResponse,
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         Success: false,
         Status: error.response?.status || 500,

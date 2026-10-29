@@ -4,10 +4,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import { EspaciosFisicosService } from '../espacios-fisicos/espacios-fisicos.service';
-import { firstValueFrom } from 'rxjs';
+import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 
 interface ContratoResponse {
   Status: string;
@@ -20,39 +18,16 @@ export class OrdenadoresService {
   private readonly axiosInstance: AxiosInstance;
   private readonly supervisoresOrdenadoresMidAxiosInstance: AxiosInstance;
 
-  constructor(private configService: ConfigService) {
-    this.axiosInstance = axios.create({
-      baseURL: this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD'),
-      timeout: 5000,
-    });
-
-    this.supervisoresOrdenadoresMidAxiosInstance = axios.create({
-      baseURL: this.configService.get<string>(
-        'ENDP_SUPERVISORES_ORDENADORES_MID',
-      ),
-      timeout: 5000,
-    });
-  }
-
-  private async fetchWithRetry<T>(
-    axiosCall: () => Promise<T>,
-    retries = 3,
-    delay = 1000,
-  ): Promise<T> {
-    try {
-      return await axiosCall();
-    } catch (error) {
-      if (retries > 0 && axios.isAxiosError(error)) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
-      }
-      throw error;
-    }
+  constructor() {
+    this.axiosInstance = createAxiosInstance('ENDP_GESTION_CONTRACTUAL_CRUD')
+    this.supervisoresOrdenadoresMidAxiosInstance = createAxiosInstance(
+      'ENDP_SUPERVISORES_ORDENADORES_MID'
+    );
   }
 
   async consultarInfoSupervisorContrato(id: number): Promise<any> {
     try {
-      const response = await this.fetchWithRetry(() =>
+      const response = await fetchWithRetry(() =>
         this.axiosInstance.get<ContratoResponse>(
           `ordenador-contrato/contrato/${id}`,
         ),
@@ -67,7 +42,7 @@ export class OrdenadoresService {
 
       const ordenaodorBase = response.data.Data;
 
-      const ordenadorDetalleResponse = await this.fetchWithRetry(() =>
+      const ordenadorDetalleResponse = await fetchWithRetry(() =>
         this.supervisoresOrdenadoresMidAxiosInstance.get<ContratoResponse>(
           `/rol-ordenador/actual?rol=${ordenaodorBase.ordenador_argo_id}`,
         ),
@@ -97,7 +72,7 @@ export class OrdenadoresService {
       };
 
       return ordenadorCompleto;
-    } catch (error) {
+    } catch (error: any) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 404) {
           throw new NotFoundException(

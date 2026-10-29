@@ -16,6 +16,7 @@ import {
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { datos } from './conf';
 import { ParametroService } from '../parametro/parametro.service';
+import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 
 @Injectable()
 export class ContratoGeneralService {
@@ -26,20 +27,9 @@ export class ContratoGeneralService {
     private configService: ConfigService,
     private readonly parametrosCrud: ParametroService
   ) {
-    this.gestionContractualCrud = this.createAxiosInstance(
+    this.gestionContractualCrud = createAxiosInstance(
       'ENDP_GESTION_CONTRACTUAL_CRUD',
     );
-  }
-
-  private createAxiosInstance(endpointKey: string): AxiosInstance {
-    const baseURL = this.configService.get<string>(endpointKey);
-    if (!baseURL) {
-      throw new Error(`Configuración faltante para ${endpointKey}`);
-    }
-    return axios.create({
-      baseURL,
-      timeout: 5000,
-    });
   }
 
   private readonly parameterMap = {
@@ -62,25 +52,10 @@ export class ContratoGeneralService {
     tipo_persona_id: 132,
   } as const;
 
-  private async fetchWithRetry<T>(
-    axiosCall: () => Promise<T>,
-    retries = 3,
-    delay = 1000,
-  ): Promise<T> {
-    try {
-      return await axiosCall();
-    } catch (error) {
-      if (retries > 0 && axios.isAxiosError(error)) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
-      }
-      throw error;
-    }
-  }
 
   async consultarInfoContrato(id: number): Promise<any> {
     try {
-      const response = await this.fetchWithRetry(() =>
+      const response = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<ContratoResponse>(
           `contratos-generales/${id}`,
         ),
@@ -354,7 +329,7 @@ export class ContratoGeneralService {
 
       this.logger.log(`Consultando contratos generales en ${url}`);
 
-      const response = await this.fetchWithRetry(() =>
+      const response = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<PaginatedResponse<any>>(baseUrl, {
           params,
         }),
@@ -431,7 +406,7 @@ export class ContratoGeneralService {
 
       this.logger.log(`Consultando contratos generales en ${url}`);
 
-      const response = await this.fetchWithRetry(() =>
+      const response = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<PaginatedResponse<any>>(baseUrl, {
           params,
         }),

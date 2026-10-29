@@ -1,41 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Observable, from, of, map, catchError } from 'rxjs';
-import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { ParametroBase, StandardResponse } from 'src/interfaces/responses.interface';
+import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 
 @Injectable()
 export class ParametroService {
   private readonly axiosInstance: AxiosInstance;
 
   constructor(
-    private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {
-    this.axiosInstance = axios.create({
-      baseURL: this.configService.get<string>('ENDP_PARAMETROS_CRUD'),
-      timeout: 5000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  }
-
-  private async fetchWithRetry<T>(
-    axiosCall: () => Promise<T>,
-    retries = 3,
-    delay = 1000,
-  ): Promise<T> {
-    try {
-      return await axiosCall();
-    } catch (error) {
-      if (retries > 0 && axios.isAxiosError(error)) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
-      }
-      throw error;
-    }
+    this.axiosInstance = createAxiosInstance('ENDP_PARAMETROS_CRUD')
   }
 
   getParametro(
@@ -85,7 +62,7 @@ export class ParametroService {
 
     await Promise.all(
       noEncontrados.map(async (id) => {
-        const res = await this.fetchWithRetry(() =>
+        const res = await fetchWithRetry(() =>
           this.axiosInstance.get<StandardResponse<ParametroBase[]>>(
             'parametro',
             {

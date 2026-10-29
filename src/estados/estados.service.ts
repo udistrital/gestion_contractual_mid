@@ -15,6 +15,7 @@ import {
 } from '../interfaces/responses.interface';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { ParametroService } from '../parametro/parametro.service';
+import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 
 @Injectable()
 export class EstadosService {
@@ -29,37 +30,9 @@ export class EstadosService {
     private configService: ConfigService,
     private readonly parametroService: ParametroService,
   ) {
-    const timeout = 5000;
-    this.axiosInstance = this.createAxiosInstance(
+    this.axiosInstance = createAxiosInstance(
       'ENDP_GESTION_CONTRACTUAL_CRUD',
-      timeout,
     );
-  }
-
-  private createAxiosInstance(
-    baseUrlKey: string,
-    timeout: number,
-  ): AxiosInstance {
-    return axios.create({
-      baseURL: this.configService.get<string>(baseUrlKey),
-      timeout,
-    });
-  }
-
-  private async fetchWithRetry<T>(
-    axiosCall: () => Promise<T>,
-    retries = 3,
-    delay = 1000,
-  ): Promise<T> {
-    try {
-      return await axiosCall();
-    } catch (error) {
-      if (retries > 0 && axios.isAxiosError(error)) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
-      }
-      throw error;
-    }
   }
 
   private async obtenerEstadosPorTipoParametro(): Promise<
@@ -152,7 +125,7 @@ export class EstadosService {
         query: JSON.stringify({ ...queryFilter }),
       };
 
-      const response = await this.fetchWithRetry(() =>
+      const response = await fetchWithRetry(() =>
         this.axiosInstance.get<PaginatedResponse<any>>('estados-contrato', {
           params,
         }),
@@ -195,7 +168,7 @@ export class EstadosService {
         Data: flatten(results),
         Metadata: metadata,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Error en getAll:', error);
       throw new InternalServerErrorException(
         `Error al consultar los estados de los contratos: ${error.message}`,

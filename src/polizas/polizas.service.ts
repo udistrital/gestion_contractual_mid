@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 
 export interface RespuestaCrud {
   status: number;
@@ -15,19 +15,10 @@ export class PolizasService {
   private readonly logger = new Logger(PolizasService.name);
   private readonly gestionContractualCrud: AxiosInstance;
 
-  constructor(private readonly configService: ConfigService) {
-    const baseURL = this.configService.get<string>(
-      'ENDP_GESTION_CONTRACTUAL_CRUD',
-    );
-    if (!baseURL) {
-      throw new Error(
-        'Configuración faltante para ENDP_GESTION_CONTRACTUAL_CRUD',
-      );
-    }
-    this.gestionContractualCrud = axios.create({
-      baseURL,
-      timeout: 5000,
-    });
+  constructor() {
+    this.gestionContractualCrud = createAxiosInstance(
+      'ENDP_GESTION_CONTRACTUAL_CRUD'
+    )
   }
 
   consultar(ruta: string, params: Record<string, any>): Promise<RespuestaCrud> {
@@ -54,7 +45,7 @@ export class PolizasService {
   ): Promise<RespuestaCrud> {
     try {
       const response = reintentar
-        ? await this.fetchWithRetry(() =>
+        ? await fetchWithRetry(() =>
             this.gestionContractualCrud.request(config),
           )
         : await this.gestionContractualCrud.request(config);
@@ -83,24 +74,4 @@ export class PolizasService {
     }
   }
 
-  // Reintenta solo fallos transitorios (sin respuesta o 5xx); un 4xx no cambia
-  // al repetir la petición.
-  private async fetchWithRetry<T>(
-    axiosCall: () => Promise<T>,
-    retries = 3,
-    delay = 1000,
-  ): Promise<T> {
-    try {
-      return await axiosCall();
-    } catch (error) {
-      const transitorio =
-        axios.isAxiosError(error) &&
-        (!error.response || error.response.status >= 500);
-      if (retries > 0 && transitorio) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
-      }
-      throw error;
-    }
-  }
 }
