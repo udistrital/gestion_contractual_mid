@@ -24,10 +24,11 @@ export class ContratoGeneralService {
   private readonly gestionContractualCrud: AxiosInstance;
 
   constructor(
-    private configService: ConfigService,
+    private readonly configService: ConfigService,
     private readonly parametrosCrud: ParametroService
   ) {
     this.gestionContractualCrud = createAxiosInstance(
+      this.configService,
       'ENDP_GESTION_CONTRACTUAL_CRUD',
     );
   }

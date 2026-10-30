@@ -61,10 +61,12 @@ export class SupervisoresService {
     private espaciosFisicosService: EspaciosFisicosService,
   ) {
     this.axiosInstance = createAxiosInstance(
+      this.configService,
       'ENDP_GESTION_CONTRACTUAL_CRUD'
     );
 
     this.supervisoresOrdenadoresMidAxiosInstance = createAxiosInstance(
+      this.configService,
       'ENDP_SUPERVISORES_ORDENADORES_MID',
     )
   }

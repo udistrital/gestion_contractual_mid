@@ -1,18 +1,23 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Observable, from, of, map, catchError } from 'rxjs';
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { ParametroBase, StandardResponse } from 'src/interfaces/responses.interface';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ParametroService {
   private readonly axiosInstance: AxiosInstance;
 
   constructor(
+    private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {
-    this.axiosInstance = createAxiosInstance('ENDP_PARAMETROS_CRUD')
+    this.axiosInstance = createAxiosInstance(
+      this.configService,
+      'ENDP_PARAMETROS_CRUD'
+    )
   }
 
   getParametro(

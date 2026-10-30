@@ -15,14 +15,6 @@ interface ContratoResponse {
   Data: any;
 }
 
-interface ParametroResponse {
-  Status: string;
-  Data: Array<{
-    Id: number;
-    Nombre: string;
-  }>;
-}
-
 interface variablesResponse {
   objeto?: any; ///
   actividades?: any; ///
@@ -181,28 +173,6 @@ export class VariablesClausulasService {
     private readonly configService: ConfigService,
     private readonly parametroService: ParametroService
   ) { }
-
-  private async obtenerParametrosPorTipo(
-    tipoParametroId: number,
-  ): Promise<Map<number, string>> {
-    try {
-      const { data } =
-        await this.parametrosAxiosInstance.get<ParametroResponse>(
-          `parametro?query=TipoParametroId:${tipoParametroId}&limit=0`,
-        );
-
-      if (data.Status !== '200' || !data.Data) {
-        throw new Error('Respuesta inválida del servidor de parámetros');
-      }
-
-      return new Map(data.Data.map((param) => [param.Id, param.Nombre]));
-    } catch (error: any) {
-      console.error(
-        `Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`,
-      );
-      throw error;
-    }
-  }
 
   private async cargarCacheParametros(): Promise<
     Map<number, Map<number, ParametroBase>>

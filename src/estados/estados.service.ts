@@ -27,10 +27,11 @@ export class EstadosService {
   } as const;
 
   constructor(
-    private configService: ConfigService,
+    private readonly configService: ConfigService,
     private readonly parametroService: ParametroService,
   ) {
     this.axiosInstance = createAxiosInstance(
+      this.configService,
       'ENDP_GESTION_CONTRACTUAL_CRUD',
     );
   }

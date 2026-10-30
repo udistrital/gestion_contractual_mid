@@ -8,6 +8,7 @@ import { AxiosInstance } from 'axios';
 import { StandardResponse } from '../interfaces/responses.interface';
 import { ParametroService } from 'src/parametro/parametro.service';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AmparosContratosService {
@@ -15,9 +16,11 @@ export class AmparosContratosService {
   private readonly gestionContractualCrud: AxiosInstance;
 
   constructor(
-    private readonly parametrosCrud: ParametroService
+    private readonly parametrosCrud: ParametroService,
+    private readonly configService: ConfigService,
   ) {
     this.gestionContractualCrud = createAxiosInstance(
+      this.configService,
       'ENDP_GESTION_CONTRACTUAL_CRUD',
     );
   }

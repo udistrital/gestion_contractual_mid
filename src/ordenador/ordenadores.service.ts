@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 
@@ -18,9 +19,13 @@ export class OrdenadoresService {
   private readonly axiosInstance: AxiosInstance;
   private readonly supervisoresOrdenadoresMidAxiosInstance: AxiosInstance;
 
-  constructor() {
-    this.axiosInstance = createAxiosInstance('ENDP_GESTION_CONTRACTUAL_CRUD')
+  constructor(private readonly configService: ConfigService) {
+    this.axiosInstance = createAxiosInstance(
+      this.configService,
+      'ENDP_GESTION_CONTRACTUAL_CRUD'
+    )
     this.supervisoresOrdenadoresMidAxiosInstance = createAxiosInstance(
+      this.configService,
       'ENDP_SUPERVISORES_ORDENADORES_MID'
     );
   }

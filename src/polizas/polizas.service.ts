@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 
@@ -15,8 +16,9 @@ export class PolizasService {
   private readonly logger = new Logger(PolizasService.name);
   private readonly gestionContractualCrud: AxiosInstance;
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     this.gestionContractualCrud = createAxiosInstance(
+      this.configService,
       'ENDP_GESTION_CONTRACTUAL_CRUD'
     )
   }
