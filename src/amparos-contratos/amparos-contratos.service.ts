@@ -15,6 +15,8 @@ export class AmparosContratosService {
   private readonly logger = new Logger(AmparosContratosService.name);
   private readonly gestionContractualCrud: AxiosInstance;
 
+  readonly tipoParametroAmparos = 118;
+
   constructor(
     private readonly parametrosCrud: ParametroService,
     private readonly configService: ConfigService,
@@ -48,11 +50,13 @@ export class AmparosContratosService {
         );
       }
 
-      const amparosMap = await this.parametrosCrud.getParametrosPorTipoId(['118']);
+      const amparosMap = await this.parametrosCrud.getParametrosIndexados(
+        [this.tipoParametroAmparos.toString()]
+      );
 
       return amparos.map((amparo: any) => ({
         ...amparo,
-        amparo: amparosMap[amparo.amparo_id] || null,
+        amparo: amparosMap.get(this.tipoParametroAmparos)?.get(amparo.amparo_id) || null,
       }));
     } catch (error) {
     this.logger.error(

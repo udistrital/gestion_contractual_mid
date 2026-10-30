@@ -12,7 +12,7 @@ export class ParametroService {
 
   constructor(
     private readonly configService: ConfigService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
   ) {
     this.axiosInstance = createAxiosInstance(
       this.configService,
