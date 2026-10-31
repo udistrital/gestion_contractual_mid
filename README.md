@@ -118,6 +118,106 @@ Respuestas: las del CRUD (`200`, `201`, `400`, `404`, `500`), `400` si `:id` no 
 
 El pipeline definido en .drone.yml ejecuta las etapas install_dependencies y build sobre la imagen node:24-slim.
 
+## Parámetros con caché
+
+Intermediario entre los consumidores del MID y `parametros_crud`. Entrega los parámetros agrupados por tipo y los guarda en una caché en memoria, para no consultar el CRUD en cada petición.
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/parametros?ids=137,141` | Retorna los parámetros de los tipos indicados, agrupados por id de tipo |
+| DELETE | `/parametros` | Limpia toda la caché de parámetros |
+
+Depende de la variable de entorno `ENDP_PARAMETROS_CRUD`.
+
+### GET /parametros
+
+- `ids` (query, obligatorio): ids de tipo de parámetro separados por coma, por ejemplo `137,141`. Se ignoran los espacios y las comas vacías.
+- Por cada tipo se consulta `parametro?query=TipoParametroId.Id:<id>&fields=Id,Nombre,Descripcion,CodigoAbreviacion,Activo,ParametroPadreId&limit=0`. Se devuelven activos e inactivos.
+
+Respuestas:
+
+- `200`: `Data` es un objeto cuya llave es el id de tipo y cuyo valor es la lista de parámetros. Un tipo sin registros llega como `[]`.
+- `400`: falta `ids`, viene vacío o contiene valores no numéricos. No se consulta el CRUD.
+- `500`: falló la consulta a `parametros_crud` después de los reintentos. La respuesta no incluye el detalle del error, que solo queda en el log del servidor.
+
+Ejemplo de respuesta `200`:
+
+```json
+{
+  "Success": true,
+  "Status": 200,
+  "Message": "Parametros consultados exitosamente",
+  "Data": {
+    "137": [
+      { "Id": 6620, "Nombre": "Por suscribir", "Descripcion": "", "CodigoAbreviacion": "PSU", "Activo": true, "ParametroPadreId": null }
+    ],
+    "141": [
+      { "Id": 6630, "Nombre": "Borrador", "Descripcion": "", "CodigoAbreviacion": "BOR", "Activo": true, "ParametroPadreId": { "Id": 6620 } }
+    ]
+  }
+}
+```
+
+Ejemplo de respuesta `400` (la de `500` tiene la misma forma, con `Status: 500`):
+
+```json
+{
+  "Success": false,
+  "Status": 400,
+  "Message": "El parámetro ids es obligatorio y debe contener IDs numéricos separados por coma",
+  "Data": null
+}
+```
+
+### DELETE /parametros
+
+Vacía toda la caché y responde `200` cuando la limpieza termina. Sirve para refrescar los datos después de modificar parámetros en el CRUD sin esperar a que venza el TTL. Responde `500` si no se pudo limpiar.
+
+### Funcionamiento de la caché
+
+- `CacheModule` de NestJS, registrado de forma global en `app.module.ts`, con el almacén en memoria del proceso (sin Redis).
+- TTL de **4 horas** (`14400000` ms) por entrada.
+- Una llave por tipo de parámetro: la llave es el id del tipo y el valor contiene sus parámetros indexados por `Id`.
+- Solo se consultan al CRUD los tipos que no están en caché, en paralelo. Si todos están en caché, no se hace ninguna petición.
+- No se guardan en caché las respuestas con error (`Success: false` o sin `Data`) ni las vacías. Los elementos sin `Id`, como el `[{}]` que devuelve el CRUD cuando un tipo no tiene registros, se descartan.
+- Cada consulta al CRUD tiene un timeout de **5 s** y se reintenta **3 veces** con backoff (1, 2 y 4 s) ante fallas de red o timeout.
+- La caché es por instancia: cada réplica del MID tiene la suya.
+
+### Consumidores de `ParametroService`
+
+| Módulo | Tipos de parámetro | Estado |
+|--------|--------------------|--------|
+| `contrato-general` | Los 17 tipos del contrato (111–127, 132, 137, 146) | Consume `ParametroService` |
+| `estados` | 137 (estados generales) y 141 (estados internos) | Consume `ParametroService` |
+| `amparos-contratos` | 118 (amparos) | Pendiente: sigue consultando `ENDP_PARAMETROS_CRUD` directamente. Se migrará cuando se resuelva el PR #23 |
+
+Los módulos que usan el servicio importan `ParametroModule`, así comparten la misma caché.
+
+### Requisitos y pruebas
+
+El proyecto usa pnpm 12.4.1 (`packageManager` en `package.json`), que requiere **Node 24**. Con Node 20, `corepack` no puede iniciar esa versión de pnpm. Si no hay Node 24 disponible, se puede usar `npx -y pnpm@12.4.1` en lugar de `pnpm`.
+
+```shell
+# Pruebas unitarias (incluye parametro.service, parametro.controller, estados.service y contrato-general.service)
+pnpm test
+
+# Cobertura
+pnpm test:cov
+
+# Pruebas e2e. app.e2e-spec.ts levanta el AppModule completo y necesita las variables ENDP_* definidas
+# (en .env o en el entorno); no hace llamadas a los servicios externos.
+pnpm test:e2e
+```
+
+Pruebas e2e de parámetros y estados:
+
+| Suite | Qué valida |
+|-------|------------|
+| `test/parametros.e2e-spec.ts` | `GET /parametros` y `DELETE /parametros` de punta a punta: respuesta `200` con `ParametroPadreId`, campos y filtros enviados al CRUD, uso de la caché (solo se consultan los tipos que faltan), limpieza con `DELETE`, `[{}]` no se guarda en caché, `400` por `ids` inválidos, reintento ante un fallo, `500` sin exponer el error y respuestas con `Success: false` sin guardar en caché |
+| `test/estados.e2e-spec.ts` | `GET /estados` de punta a punta: respuesta igual a la de `develop` (nombres resueltos, ids inexistentes y `null` conservados), tipos 137 y 141 tomados de la caché en la segunda petición, filtros y paginación reenviados al CRUD, consulta a terceros solo para estados con usuario y `500` si `parametros_crud` no responde |
+
+Estas suites levantan los módulos reales del MID y simulan `parametros_crud`, `gestion_contractual_crud` y `terceros_crud` con un servidor HTTP local dentro de la propia prueba (`test/utils/crud-simulado.ts`). No requieren VPN ni servicios externos; asignan sus propias variables `ENDP_*`. Los casos de `500` tardan unos 7 s cada uno por los reintentos con backoff.
+
 ## Licencia
 
 This file is part of gestion_contractual_mid.

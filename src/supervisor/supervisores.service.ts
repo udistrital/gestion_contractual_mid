@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { EspaciosFisicosService } from '../espacios-fisicos/espacios-fisicos.service';
 import { firstValueFrom } from 'rxjs';
+import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 
 interface SupervisorResponse {
   Status: string;
@@ -59,38 +60,20 @@ export class SupervisoresService {
     private configService: ConfigService,
     private espaciosFisicosService: EspaciosFisicosService,
   ) {
-    this.axiosInstance = axios.create({
-      baseURL: this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD'),
-      timeout: 5000,
-    });
+    this.axiosInstance = createAxiosInstance(
+      this.configService,
+      'ENDP_GESTION_CONTRACTUAL_CRUD'
+    );
 
-    this.supervisoresOrdenadoresMidAxiosInstance = axios.create({
-      baseURL: this.configService.get<string>(
-        'ENDP_SUPERVISORES_ORDENADORES_MID',
-      ),
-      timeout: 5000,
-    });
-  }
-
-  private async fetchWithRetry<T>(
-    axiosCall: () => Promise<T>,
-    retries = 3,
-    delay = 1000,
-  ): Promise<T> {
-    try {
-      return await axiosCall();
-    } catch (error) {
-      if (retries > 0 && axios.isAxiosError(error)) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
-      }
-      throw error;
-    }
+    this.supervisoresOrdenadoresMidAxiosInstance = createAxiosInstance(
+      this.configService,
+      'ENDP_SUPERVISORES_ORDENADORES_MID',
+    )
   }
 
   async consultarInfoSupervisorContrato(id: number): Promise<any> {
     try {
-      const response = await this.fetchWithRetry(() =>
+      const response = await fetchWithRetry(() =>
         this.axiosInstance.get<SupervisorResponse>(
           `supervisores/contrato/${id}`,
         ),
@@ -108,7 +91,7 @@ export class SupervisoresService {
       const supervisoresDetalle = await Promise.all(
         supervisoresBase.map(async (supervisorBase) => {
           try {
-            const supervisorDetalleResponse = await this.fetchWithRetry(() =>
+            const supervisorDetalleResponse = await fetchWithRetry(() =>
               this.supervisoresOrdenadoresMidAxiosInstance.get<SupervisorMIDResponse>(
                 `/supervisores/documento?documento=${supervisorBase.documento}`,
               ),
@@ -158,7 +141,7 @@ export class SupervisoresService {
               dependencia:
                 dependenciaResponse.nombre || 'Dependencia no encontrada',
             };
-          } catch (error) {
+          } catch (error: any) {
             this.logger.error(
               `Error procesando supervisor ${supervisorBase.documento}: ${error.message}`,
             );
@@ -178,7 +161,7 @@ export class SupervisoresService {
       }
 
       return supervisoresValidos;
-    } catch (error) {
+    } catch (error: any) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 404) {
           throw new NotFoundException(

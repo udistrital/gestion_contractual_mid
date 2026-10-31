@@ -11,97 +11,42 @@ import {
   PaginatedResponse,
   ResponseMetadata,
   UsuarioResponse,
-  ParametroResponse,
+  ParametroBase,
 } from '../interfaces/responses.interface';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
+import { ParametroService } from '../parametro/parametro.service';
+import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 
 @Injectable()
 export class EstadosService {
   private readonly logger = new Logger(EstadosService.name);
   private readonly axiosInstance: AxiosInstance;
-  private readonly parametrosAxiosInstance: AxiosInstance;
   private readonly idsTipoParametro = {
     estadosGenerales: 137,
     estadosInternos: 141,
   } as const;
 
-  constructor(private configService: ConfigService) {
-    const timeout = 5000;
-    this.axiosInstance = this.createAxiosInstance(
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly parametroService: ParametroService,
+  ) {
+    this.axiosInstance = createAxiosInstance(
+      this.configService,
       'ENDP_GESTION_CONTRACTUAL_CRUD',
-      timeout,
     );
-    this.parametrosAxiosInstance = this.createAxiosInstance(
-      'ENDP_PARAMETROS_CRUD',
-      timeout,
-    );
-  }
-
-  private createAxiosInstance(
-    baseUrlKey: string,
-    timeout: number,
-  ): AxiosInstance {
-    return axios.create({
-      baseURL: this.configService.get<string>(baseUrlKey),
-      timeout,
-    });
-  }
-
-  private async fetchWithRetry<T>(
-    axiosCall: () => Promise<T>,
-    retries = 3,
-    delay = 1000,
-  ): Promise<T> {
-    try {
-      return await axiosCall();
-    } catch (error) {
-      if (retries > 0 && axios.isAxiosError(error)) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
-      }
-      throw error;
-    }
-  }
-
-  private async obtenerParametrosPorTipo(
-    tipoParametroId: number,
-  ): Promise<Map<number, string>> {
-    try {
-      const response = await this.fetchWithRetry(() =>
-        this.parametrosAxiosInstance.get<ParametroResponse>(
-          `parametro?query=TipoParametroId:${tipoParametroId}&limit=0`,
-        ),
-      );
-      if (response.data.Status !== '200' || !response.data.Data) {
-        throw new Error('Respuesta inválida del servidor de parámetros');
-      }
-      return new Map(
-        response.data.Data.map((param) => [param.Id, param.Nombre]),
-      );
-    } catch (error) {
-      this.logger.error(
-        `Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`,
-      );
-      throw error;
-    }
   }
 
   private async obtenerEstadosPorTipoParametro(): Promise<
-    Map<number, Map<number, string>>
+    Map<number, Map<number, ParametroBase>>
   > {
-    const estadosPorTipoParametro = new Map<number, Map<number, string>>();
-    await Promise.all(
-      Object.values(this.idsTipoParametro).map(async (tipoParametroId) => {
-        const parametros = await this.obtenerParametrosPorTipo(tipoParametroId);
-        estadosPorTipoParametro.set(tipoParametroId, parametros);
-      }),
+    return this.parametroService.getParametrosIndexados(
+      Object.values(this.idsTipoParametro).map(String),
     );
-    return estadosPorTipoParametro;
   }
 
   private async transformarEstados(
     estados: any[],
-    estadosPorTipoParametro: Map<number, Map<number, string>>,
+    estadosPorTipoParametro: Map<number, Map<number, ParametroBase>>,
   ): Promise<any[]> {
     return await Promise.all(
       estados.map(async (estado) => {
@@ -115,8 +60,8 @@ export class EstadosService {
           estadoTransformado.estado_parametro_id != null
         ) {
           estadoTransformado.estado_parametro_id =
-            estadosGenerales.get(estadoTransformado.estado_parametro_id) ||
-            estadoTransformado.estado_parametro_id;
+            estadosGenerales.get(estadoTransformado.estado_parametro_id)
+              ?.Nombre ?? estadoTransformado.estado_parametro_id;
         }
 
         const estadosInternos = estadosPorTipoParametro.get(
@@ -127,9 +72,8 @@ export class EstadosService {
           estadoTransformado.estado_interno_parametro_id != null
         ) {
           estadoTransformado.estado_interno_parametro_id =
-            estadosInternos.get(
-              estadoTransformado.estado_interno_parametro_id,
-            ) || estadoTransformado.estado_interno_parametro_id;
+            estadosInternos.get(estadoTransformado.estado_interno_parametro_id)
+              ?.Nombre ?? estadoTransformado.estado_interno_parametro_id;
         }
 
         // Agregar nombre de usuario
@@ -182,7 +126,7 @@ export class EstadosService {
         query: JSON.stringify({ ...queryFilter }),
       };
 
-      const response = await this.fetchWithRetry(() =>
+      const response = await fetchWithRetry(() =>
         this.axiosInstance.get<PaginatedResponse<any>>('estados-contrato', {
           params,
         }),
@@ -225,7 +169,7 @@ export class EstadosService {
         Data: flatten(results),
         Metadata: metadata,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Error en getAll:', error);
       throw new InternalServerErrorException(
         `Error al consultar los estados de los contratos: ${error.message}`,

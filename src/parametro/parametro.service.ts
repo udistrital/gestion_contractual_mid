@@ -1,21 +1,23 @@
-import { Injectable } from '@nestjs/common';
-import { Observable, from, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { Inject, Injectable } from '@nestjs/common';
+import { Observable, from, of, map, catchError } from 'rxjs';
+import { AxiosInstance } from 'axios';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { ParametroBase, StandardResponse } from 'src/interfaces/responses.interface';
+import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 import { ConfigService } from '@nestjs/config';
-import axios, { AxiosInstance } from 'axios';
 
 @Injectable()
 export class ParametroService {
   private readonly axiosInstance: AxiosInstance;
 
-  constructor(private configService: ConfigService) {
-    this.axiosInstance = axios.create({
-      baseURL: this.configService.get<string>('ENDP_PARAMETROS_CRUD'),
-      timeout: 1000, // 1 segundo de timeout
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
+  ) {
+    this.axiosInstance = createAxiosInstance(
+      this.configService,
+      'ENDP_PARAMETROS_CRUD'
+    )
   }
 
   getParametro(
@@ -41,5 +43,87 @@ export class ParametroService {
         return of(null);
       }),
     );
+  }
+
+  async getParametrosPorTipoId(
+    ids: string[],
+  ): Promise<Record<string, ParametroBase[]>> {
+    const parametros: Record<string, ParametroBase[]> = {};
+    const noEncontrados: string[] = [];
+
+    for (const id of ids) {
+      const parametrosPorTipo =
+        await this.cacheManager.get<Record<string, ParametroBase>>(id);
+      if (parametrosPorTipo) {
+        parametros[id] = Object.values(parametrosPorTipo);
+      } else {
+        noEncontrados.push(id);
+      }
+    }
+
+    if (noEncontrados.length === 0) {
+      return parametros;
+    }
+
+    await Promise.all(
+      noEncontrados.map(async (id) => {
+        const res = await fetchWithRetry(() =>
+          this.axiosInstance.get<StandardResponse<ParametroBase[]>>(
+            'parametro',
+            {
+              params: {
+                query: `TipoParametroId.Id:${id}`, //,Activo:true
+                fields:
+                  'Id,Nombre,Descripcion,CodigoAbreviacion,Activo,ParametroPadreId',
+                limit: 0,
+              },
+            },
+          ),
+        );
+
+        if (res.data?.Success === false || !Array.isArray(res.data?.Data)) {
+          throw new Error(
+            `Respuesta inválida del servidor de parámetros para el tipo ${id}`,
+          );
+        }
+
+        // parametros_crud responde [{}] cuando el tipo no tiene registros
+        const listaParametros = res.data.Data.filter(
+          (parametro) => parametro?.Id != null,
+        );
+        parametros[id] = listaParametros;
+
+        if (listaParametros.length === 0) {
+          return;
+        }
+
+        const parametrosPorTipo: Record<string, ParametroBase> = {};
+        for (const parametro of listaParametros) {
+          parametrosPorTipo[parametro.Id.toString()] = parametro;
+        }
+        await this.cacheManager.set(id, parametrosPorTipo);
+      }),
+    );
+
+    return parametros;
+  }
+
+  async getParametrosIndexados(ids: string[]) {
+    const indexados = new Map<number, Map<number, ParametroBase>>();
+    const parametros = await this.getParametrosPorTipoId(ids);
+
+    for (const [tipoId, listaParametros] of Object.entries(parametros)) {
+      const mapaInterno = new Map<number, ParametroBase>();
+      for (const parametro of listaParametros) {
+        mapaInterno.set(parametro.Id, parametro);
+      }
+
+      indexados.set(Number(tipoId), mapaInterno);
+    }
+    return indexados;
+  }
+
+  async limpiarCache(): Promise<void> {
+    await this.cacheManager.clear();
   }
 }

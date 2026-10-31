@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
 import request from 'supertest';
 import nock from 'nock';
 import { AmparosContratosModule } from './../src/amparos-contratos/amparos-contratos.module';
@@ -36,6 +37,7 @@ describe('AmparosContratosController (e2e con nock)', () => {
             }),
           ],
         }),
+        CacheModule.register({ isGlobal: true, ttl: 14400000 }),
         AmparosContratosModule,
       ],
     }).compile();
@@ -65,7 +67,11 @@ describe('AmparosContratosController (e2e con nock)', () => {
       });
     const parametros = nock(PARAMETROS)
       .get('/v1/parametro')
-      .query({ query: 'TipoParametroId:118', limit: '0' })
+      .query({
+        query: 'TipoParametroId.Id:118',
+        fields: 'Id,Nombre,Descripcion,CodigoAbreviacion,Activo,ParametroPadreId',
+        limit: '0',
+      })
       .reply(200, {
         Status: '200',
         Data: [{ Id: 6602, Nombre: 'Amparo de Cumplimiento' }],

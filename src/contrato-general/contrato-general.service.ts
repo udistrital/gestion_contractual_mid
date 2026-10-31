@@ -10,34 +10,27 @@ import { chunk, flatten } from 'lodash';
 import {
   PaginatedResponse,
   ResponseMetadata,
-  ParametroResponse,
   ContratoResponse,
+  ParametroBase,
 } from '../interfaces/responses.interface';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { datos } from './conf';
+import { ParametroService } from '../parametro/parametro.service';
+import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 
 @Injectable()
 export class ContratoGeneralService {
   private readonly logger = new Logger(ContratoGeneralService.name);
   private readonly gestionContractualCrud: AxiosInstance;
-  private readonly parametrosCrud: AxiosInstance;
 
-  constructor(private configService: ConfigService) {
-    this.gestionContractualCrud = this.createAxiosInstance(
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly parametrosCrud: ParametroService
+  ) {
+    this.gestionContractualCrud = createAxiosInstance(
+      this.configService,
       'ENDP_GESTION_CONTRACTUAL_CRUD',
     );
-    this.parametrosCrud = this.createAxiosInstance('ENDP_PARAMETROS_CRUD');
-  }
-
-  private createAxiosInstance(endpointKey: string): AxiosInstance {
-    const baseURL = this.configService.get<string>(endpointKey);
-    if (!baseURL) {
-      throw new Error(`Configuración faltante para ${endpointKey}`);
-    }
-    return axios.create({
-      baseURL,
-      timeout: 5000,
-    });
   }
 
   private readonly parameterMap = {
@@ -60,25 +53,10 @@ export class ContratoGeneralService {
     tipo_persona_id: 132,
   } as const;
 
-  private async fetchWithRetry<T>(
-    axiosCall: () => Promise<T>,
-    retries = 3,
-    delay = 1000,
-  ): Promise<T> {
-    try {
-      return await axiosCall();
-    } catch (error) {
-      if (retries > 0 && axios.isAxiosError(error)) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.fetchWithRetry(axiosCall, retries - 1, delay * 2);
-      }
-      throw error;
-    }
-  }
 
   async consultarInfoContrato(id: number): Promise<any> {
     try {
-      const response = await this.fetchWithRetry(() =>
+      const response = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<ContratoResponse>(
           `contratos-generales/${id}`,
         ),
@@ -92,7 +70,7 @@ export class ContratoGeneralService {
       }
 
       return response.data.Data;
-    } catch (error) {
+    } catch (error: any) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 404) {
           throw new NotFoundException(
@@ -109,50 +87,21 @@ export class ContratoGeneralService {
     }
   }
 
-  private async obtenerParametrosPorTipo(
-    tipoParametroId: number,
-  ): Promise<Map<number, string>> {
-    try {
-      const response = await this.fetchWithRetry(() =>
-        this.parametrosCrud.get<ParametroResponse>(
-          `parametro?query=TipoParametroId:${tipoParametroId}&limit=0`,
-        ),
-      );
-
-      if (response.data.Status !== '200' || !response.data.Data) {
-        throw new Error('Respuesta inválida del servidor de parámetros');
-      }
-
-      return new Map(
-        response.data.Data.map((param) => [param.Id, param.Nombre]),
-      );
-    } catch (error) {
-      this.logger.error(
-        `Error al obtener parámetros tipo ${tipoParametroId}: ${error.message}`,
-      );
-      throw error;
-    }
-  }
-
   private async cargarCacheParametros(): Promise<
-    Map<number, Map<number, string>>
+    Map<number, Map<number, ParametroBase>>
   > {
-    const tiposParametros = new Set(Object.values(this.parameterMap));
-    const cacheParametros = new Map<number, Map<number, string>>();
+    const tipoParametroId = new Array(Object.values(this.parameterMap))[0];
+    
+    const tipoParametroIds = tipoParametroId.map(t => t.toString())
+    
+    const parametros = await this.parametrosCrud.getParametrosIndexados(tipoParametroIds);
 
-    await Promise.all(
-      Array.from(tiposParametros).map(async (tipoParametroId) => {
-        const parametros = await this.obtenerParametrosPorTipo(tipoParametroId);
-        cacheParametros.set(tipoParametroId, parametros);
-      }),
-    );
-
-    return cacheParametros;
+    return parametros;
   }
 
   private async transformarContratos(
     contratos: any[],
-    cacheParametros: Map<number, Map<number, string>>,
+    cacheParametros: Map<number, Map<number, ParametroBase>>,
     ids: boolean = false,
   ): Promise<any[]> {
     const contratosNormales = await Promise.all(
@@ -162,12 +111,12 @@ export class ContratoGeneralService {
         Object.entries(this.parameterMap).forEach(([key, tipoParametroId]) => {
           if (contratoRaw[key] != null && key.endsWith('_id')) {
             const parametrosMap = cacheParametros.get(tipoParametroId);
-            const newKey = key.replace(/_id$/, '');
+            const newKey = key.replace('_id', '');
 
             if (parametrosMap && parametrosMap.has(contratoRaw[key])) {
               contratoTransformado[ids ? newKey : key] = parametrosMap.get(
                 contratoRaw[key],
-              );
+              )?.Nombre;
             }
           }
         });
@@ -185,7 +134,7 @@ export class ContratoGeneralService {
               : (contratoTransformado.estados.estado_parametro_id =
                   estadoParametroMap.get(
                     contratoTransformado.estados.estado_parametro_id,
-                  ) || contratoTransformado.estados.estado_parametro_id);
+                  )?.Nombre ?? contratoTransformado.estados.estado_parametro_id);
           }
         }
 
@@ -202,7 +151,7 @@ export class ContratoGeneralService {
               : (contratoTransformado.contratista.tipo_persona_id =
                   tipoPersonaMap.get(
                     contratoTransformado.contratista.tipo_persona_id,
-                  ) || contratoTransformado.contratista.tipo_persona_id);
+                  )?.Nombre ?? contratoTransformado.contratista.tipo_persona_id);
           }
         }
 
@@ -225,7 +174,7 @@ export class ContratoGeneralService {
 
   private async transformarContratosConIdSeparados(
     contratos: any[],
-    cacheParametros: Map<number, Map<number, string>>,
+    cacheParametros: Map<number, Map<number, ParametroBase>>,
   ): Promise<any[]> {
     const contratosNormales = await Promise.all(
       contratos.map(async (contratoRaw) => {
@@ -240,7 +189,7 @@ export class ContratoGeneralService {
               contratoTransformado[key] = contratoRaw[key];
               contratoTransformado[key.replace('_id', '')] = parametrosMap.get(
                 contratoRaw[key],
-              );
+              )?.Nombre;
             }
           }
         });
@@ -271,8 +220,8 @@ export class ContratoGeneralService {
             contratoTransformado.estados.estado_parametro_id =
               contratoRaw.estados.estado_parametro_id;
             contratoTransformado.estados.estado_parametro =
-              estadoParametroMap.get(contratoRaw.estados.estado_parametro_id) ||
-              contratoRaw.estados.estado_parametro_id;
+              estadoParametroMap.get(contratoRaw.estados.estado_parametro_id)
+                ?.Nombre ?? contratoRaw.estados.estado_parametro_id;
           }
 
           [
@@ -306,8 +255,8 @@ export class ContratoGeneralService {
             contratoTransformado.contratista.tipo_persona_id =
               contratoRaw.contratista.tipo_persona_id;
             contratoTransformado.contratista.tipo_persona =
-              tipoPersonaMap.get(contratoRaw.contratista.tipo_persona_id) ||
-              contratoRaw.contratista.tipo_persona_id;
+              tipoPersonaMap.get(contratoRaw.contratista.tipo_persona_id)
+                ?.Nombre ?? contratoRaw.contratista.tipo_persona_id;
           }
 
           if (contratoRaw.contratista.clase_contratista_id) {
@@ -320,7 +269,7 @@ export class ContratoGeneralService {
               contratoTransformado.contratista.clase_contratista =
                 claseContratistaMap.get(
                   contratoRaw.contratista.clase_contratista_id,
-                ) || contratoRaw.contratista.clase_contratista_id;
+                )?.Nombre ?? contratoRaw.contratista.clase_contratista_id;
             }
           }
 
@@ -381,7 +330,7 @@ export class ContratoGeneralService {
 
       this.logger.log(`Consultando contratos generales en ${url}`);
 
-      const response = await this.fetchWithRetry(() =>
+      const response = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<PaginatedResponse<any>>(baseUrl, {
           params,
         }),
@@ -422,7 +371,7 @@ export class ContratoGeneralService {
         Data: flatten(results),
         Metadata: metadata,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Error en getAll:', error);
       throw new InternalServerErrorException(
         `Error al consultar contratos generales: ${error.message}`,
@@ -458,7 +407,7 @@ export class ContratoGeneralService {
 
       this.logger.log(`Consultando contratos generales en ${url}`);
 
-      const response = await this.fetchWithRetry(() =>
+      const response = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<PaginatedResponse<any>>(baseUrl, {
           params,
         }),
@@ -499,7 +448,7 @@ export class ContratoGeneralService {
         Data: flatten(results),
         Metadata: metadata,
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Error en getAll:', error);
       throw new InternalServerErrorException(
         `Error al consultar contratos generales: ${error.message}`,
@@ -508,8 +457,6 @@ export class ContratoGeneralService {
   }
 
   async getContratoTransformed(id: number, ids: boolean = false): Promise<any> {
-    console.log(typeof ids);
-
     this.logger.log(`Consultando contrato transformado para ID ${id}`);
     try {
       const contratoRaw = await this.consultarInfoContrato(id);
@@ -581,7 +528,7 @@ export class ContratoGeneralService {
 
       const numeroContrato = conteo + 1;
       return numeroContrato.toString();
-    } catch (error) {
+    } catch (error: any) {
       throw new InternalServerErrorException(
         `Error al generar consecutivo del contrato: ${error.message}`,
       );
@@ -613,7 +560,7 @@ export class ContratoGeneralService {
 
       const numeroContrato = prefijo + (conteo + 1) + sufijo;
       return numeroContrato;
-    } catch (error) {
+    } catch (error: any) {
       throw new InternalServerErrorException(
         `Error al generar número de contrato: ${error.message}`,
       );

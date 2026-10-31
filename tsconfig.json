@@ -20,6 +20,7 @@
       "src/*": ["./src/*"]
     },
     "moduleResolution": "node16",
+    "esModuleInterop": true,
     "isolatedModules": true,
     "module": "node16"
   }

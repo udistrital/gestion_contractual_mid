@@ -47,10 +47,12 @@ describe('PolizasService', () => {
   });
 
   it('crea la instancia de axios con ENDP_GESTION_CONTRACTUAL_CRUD', () => {
-    expect(mockedAxios.create).toHaveBeenCalledWith({
-      baseURL: 'http://crud.test/',
-      timeout: 5000,
-    });
+    expect(mockedAxios.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseURL: 'http://crud.test/',
+        timeout: 5000,
+      }),
+    );
   });
 
   it('lanza error si falta ENDP_GESTION_CONTRACTUAL_CRUD', () => {

@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, NotFoundException } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
 import request from 'supertest';
 import { AmparosContratosModule } from './../src/amparos-contratos/amparos-contratos.module';
 import { AmparosContratosService } from './../src/amparos-contratos/amparos-contratos.service';
@@ -13,7 +15,15 @@ describe('AmparosContratosController (e2e)', () => {
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AmparosContratosModule],
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          ignoreEnvFile: true,
+          load: [() => ({ ENDP_PARAMETROS_CRUD: 'http://parametros.test/v1/' })],
+        }),
+        CacheModule.register({ isGlobal: true, ttl: 14400000 }),
+        AmparosContratosModule,
+      ],
     })
       .overrideProvider(AmparosContratosService)
       .useValue(amparosContratosServiceMock)
