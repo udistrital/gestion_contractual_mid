@@ -56,7 +56,7 @@ export class AmparosContratosService {
 
       return amparos.map((amparo: any) => ({
         ...amparo,
-        amparo: amparosMap.get(this.tipoParametroAmparos)?.get(amparo.amparo_id) || null,
+        amparo: amparosMap.get(this.tipoParametroAmparos)?.get(amparo.amparo_id)?.Nombre ?? null,
       }));
     } catch (error) {
     this.logger.error(
