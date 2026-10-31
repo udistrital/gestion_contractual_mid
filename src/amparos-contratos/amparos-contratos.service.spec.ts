@@ -100,7 +100,7 @@ describe('AmparosContratosService', () => {
         id: 1,
         amparo_id: 6602,
         contrato_general_id: 10,
-        amparo: parametros.get(118)?.get(6602),
+        amparo: 'Cumplimiento',
       },
       {
         id: 2,
@@ -164,7 +164,7 @@ describe('AmparosContratosService', () => {
     await jest.advanceTimersByTimeAsync(1000);
 
     await expect(resultPromise).resolves.toMatchObject([
-      { id: 1, amparo_id: 6602, amparo: { Nombre: 'Cumplimiento' } },
+      { id: 1, amparo_id: 6602, amparo: 'Cumplimiento' },
     ]);
     expect(amparosGetMock).toHaveBeenCalledTimes(2);
   });
@@ -231,7 +231,7 @@ describe('AmparosContratosService', () => {
         fecha_inicio: '2026-01-01',
         fecha_fin: '2026-12-31',
         activo: true,
-        amparo: crearParametrosIndexados().get(118)?.get(6602),
+        amparo: 'Cumplimiento',
       },
     ]);
   });
