@@ -32,8 +32,8 @@ describe('AmparosContratosController (e2e con nock)', () => {
           ignoreEnvFile: true,
           load: [
             () => ({
-              ENDP_GESTION_CONTRACTUAL_CRUD: CRUD,
-              ENDP_PARAMETROS_CRUD: `${PARAMETROS}/v1/`,
+              GESTION_CONTRACTUAL_CRUD_SERVICE: CRUD,
+              PARAMETROS_CRUD_SERVICE: `${PARAMETROS}/v1/`,
             }),
           ],
         }),

@@ -29,7 +29,7 @@ export class ContratoGeneralService {
   ) {
     this.gestionContractualCrud = createAxiosInstance(
       this.configService,
-      'ENDP_GESTION_CONTRACTUAL_CRUD',
+      'GESTION_CONTRACTUAL_CRUD_SERVICE',
     );
   }
 
@@ -479,7 +479,7 @@ export class ContratoGeneralService {
   private async consultarProveedor(id: number): Promise<string | null> {
     try {
       const endpoint: string = this.configService.get<string>(
-        'ENDP_PROVEEDORES_MID',
+        'PROVEEDORES_MID_SERVICE',
       );
       if (!endpoint) {
         this.logger.error('No se ha configurado el endpoint de proveedores');
@@ -498,7 +498,7 @@ export class ContratoGeneralService {
   async obtenerConteo(body: any, endpoint: string): Promise<any> {
     try {
       const urlGestionContractualCrud: string = this.configService.get<string>(
-        'ENDP_GESTION_CONTRACTUAL_CRUD',
+        'GESTION_CONTRACTUAL_CRUD_SERVICE',
       );
 
       const url = `${urlGestionContractualCrud}contratos-generales/${endpoint}/`;

@@ -14,11 +14,14 @@ API MID intermediaria entre el cliente ARGOv2 y el CURD de ARGO V2.
 ### Variables de Entorno
 ```shell
 
-ENDP_GESTION_CONTRACTUAL_CRUD= [Endpoint gestión contractual crud]
-ENDP_PARAMETROS_CRUD= [Endpoint parametros crud]
-ENDP_OIKOS_ESPACIOS_FISICOS= [Endpoint oikos]
-ENDP_PROVEEDORES_MID= [Endpoint de info proveedores]
-ENDP_TERCEROS_CRUD= [Endpoint terceros]
+GESTION_CONTRACTUAL_CRUD_SERVICE= [Endpoint gestión contractual crud]
+PARAMETROS_CRUD_SERVICE= [Endpoint parametros crud]
+OIKOS_ESPACIOS_FISICOS_SERVICE= [Endpoint oikos]
+PROVEEDORES_MID_SERVICE= [Endpoint de info proveedores]
+TERCEROS_CRUD_SERVICE= [Endpoint terceros]
+CARGUE_MASIVO_MID_SERVERLESS= [Endpoint cargue masivo]
+ORDENADOR_SUPERVISOR_MID_SERVICE= [Endpoint info ordenadores y supervisores]
+
 ```
 **NOTA:** Las variables se asignan en una archivo privado .env.
 
@@ -90,9 +93,9 @@ Migrado desde `poliza_mid`. Consulta los amparos asociados a un contrato, cruzan
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| GET | `/amparos-contratos/:contratoId` | Obtiene los amparos del contrato indicado, resolviendo el nombre de cada amparo contra `ENDP_PARAMETROS_CRUD` |
+| GET | `/amparos-contratos/:contratoId` | Obtiene los amparos del contrato indicado, resolviendo el nombre de cada amparo contra `PARAMETROS_CRUD_SERVICE` |
 
-Depende de las variables de entorno `ENDP_GESTION_CONTRACTUAL_CRUD` y `ENDP_PARAMETROS_CRUD`.
+Depende de las variables de entorno `GESTION_CONTRACTUAL_CRUD_SERVICE` y `PARAMETROS_CRUD_SERVICE`.
 
 Respuestas: `200` con amparos activos, `400` si `contratoId` no es un entero, `404` si el contrato no tiene amparos activos, `500` ante fallas de los servicios externos (3 reintentos con backoff). Documentación técnica en [docs/amparos-contratos.md](docs/amparos-contratos.md).
 
@@ -110,7 +113,7 @@ Intermediario entre `gestion_contractual_mf` y `gestion_contractual_crud` para r
 | PUT | `/amparos-polizas/:id` | Actualiza un amparo o lo vincula a una póliza (`poliza_id`) |
 | DELETE | `/amparos-polizas/:id` | Borrado lógico de un amparo |
 
-Depende de la variable de entorno `ENDP_GESTION_CONTRACTUAL_CRUD`.
+Depende de la variable de entorno `GESTION_CONTRACTUAL_CRUD_SERVICE`.
 
 Respuestas: las del CRUD (`200`, `201`, `400`, `404`, `500`), `400` si `:id` no es un entero (no se consulta el CRUD) y `500` si el CRUD no responde. Solo las consultas (GET) se reintentan (3 reintentos con backoff, únicamente ante fallas sin respuesta o `5xx`); las escrituras no se reintentan para no duplicar registros.
 
@@ -127,7 +130,7 @@ Intermediario entre los consumidores del MID y `parametros_crud`. Entrega los pa
 | GET | `/parametros?ids=137,141` | Retorna los parámetros de los tipos indicados, agrupados por id de tipo |
 | DELETE | `/parametros` | Limpia toda la caché de parámetros |
 
-Depende de la variable de entorno `ENDP_PARAMETROS_CRUD`.
+Depende de la variable de entorno `PARAMETROS_CRUD_SERVICE`.
 
 ### GET /parametros
 
@@ -189,7 +192,7 @@ Vacía toda la caché y responde `200` cuando la limpieza termina. Sirve para re
 |--------|--------------------|--------|
 | `contrato-general` | Los 17 tipos del contrato (111–127, 132, 137, 146) | Consume `ParametroService` |
 | `estados` | 137 (estados generales) y 141 (estados internos) | Consume `ParametroService` |
-| `amparos-contratos` | 118 (amparos) | Pendiente: sigue consultando `ENDP_PARAMETROS_CRUD` directamente. Se migrará cuando se resuelva el PR #23 |
+| `amparos-contratos` | 118 (amparos) | Pendiente: sigue consultando `PARAMETROS_CRUD_SERVICE` directamente. Se migrará cuando se resuelva el PR #23 |
 
 Los módulos que usan el servicio importan `ParametroModule`, así comparten la misma caché.
 

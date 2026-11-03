@@ -45,7 +45,7 @@ describe('ParametrosController (e2e, parametros_crud simulado)', () => {
 
   beforeAll(async () => {
     await crud.iniciar();
-    process.env.ENDP_PARAMETROS_CRUD = crud.url;
+    process.env.PARAMETROS_CRUD_SERVICE = crud.url;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
