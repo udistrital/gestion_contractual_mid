@@ -23,7 +23,7 @@ export class AmparosContratosService {
   ) {
     this.gestionContractualCrud = createAxiosInstance(
       this.configService,
-      'ENDP_GESTION_CONTRACTUAL_CRUD',
+      'GESTION_CONTRACTUAL_CRUD_SERVICE',
     );
   }
   

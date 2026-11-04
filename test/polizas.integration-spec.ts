@@ -4,7 +4,7 @@ import request from 'supertest';
 import { AppModule } from './../src/app.module';
 
 // Integración real: AppModule + .env reales, sin mocks. Pega contra el
-// gestion_contractual_crud configurado en ENDP_GESTION_CONTRACTUAL_CRUD.
+// gestion_contractual_crud configurado en GESTION_CONTRACTUAL_CRUD_SERVICE.
 // Solo corre con RUN_INTEGRATION=true (npm run test:integration).
 //
 // Crea una póliza y un amparo en el contrato INTEGRATION_CONTRATO_ID (default 1)

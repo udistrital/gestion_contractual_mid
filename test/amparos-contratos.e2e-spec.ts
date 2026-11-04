@@ -19,7 +19,7 @@ describe('AmparosContratosController (e2e)', () => {
         ConfigModule.forRoot({
           isGlobal: true,
           ignoreEnvFile: true,
-          load: [() => ({ ENDP_PARAMETROS_CRUD: 'http://parametros.test/v1/' })],
+          load: [() => ({ PARAMETROS_CRUD_SERVICE: 'http://parametros.test/v1/' })],
         }),
         CacheModule.register({ isGlobal: true, ttl: 14400000 }),
         AmparosContratosModule,

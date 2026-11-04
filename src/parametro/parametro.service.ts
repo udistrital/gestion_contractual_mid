@@ -16,7 +16,7 @@ export class ParametroService {
   ) {
     this.axiosInstance = createAxiosInstance(
       this.configService,
-      'ENDP_PARAMETROS_CRUD'
+      'PARAMETROS_CRUD_SERVICE'
     )
   }
 

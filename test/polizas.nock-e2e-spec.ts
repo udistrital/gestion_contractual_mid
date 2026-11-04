@@ -27,7 +27,7 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
         ConfigModule.forRoot({
           isGlobal: true,
           ignoreEnvFile: true,
-          load: [() => ({ ENDP_GESTION_CONTRACTUAL_CRUD: CRUD })],
+          load: [() => ({ GESTION_CONTRACTUAL_CRUD_SERVICE: CRUD })],
         }),
         PolizasModule,
       ],

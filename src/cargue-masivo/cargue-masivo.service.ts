@@ -8,7 +8,7 @@ export class CargueMasivoService {
   crearEstructura(base64data: string, complement: Object): any {
     return {
       base64data: base64data,
-      service: this.configService.get<string>('ENDP_GESTION_CONTRACTUAL_CRUD'),
+      service: this.configService.get<string>('GESTION_CONTRACTUAL_CRUD_SERVICE'),
       endpoint: 'especificaciones-tecnicas',
       complement: complement,
       structure: {

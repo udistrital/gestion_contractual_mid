@@ -210,7 +210,7 @@ export class VariablesClausulasService {
   ): Promise<StandardResponse<variablesResponse>> {
     try {
       const endpoint: string = this.configService.get<string>(
-        'ENDP_GESTION_CONTRACTUAL_CRUD',
+        'GESTION_CONTRACTUAL_CRUD_SERVICE',
       );
       const url = `${endpoint}contratos-generales/${id}`;
       const { data } = await axios.get<ContratoResponse>(url);
@@ -282,7 +282,7 @@ export class VariablesClausulasService {
   async obetenerCDP(id: string): Promise<CDPResponse> {
     try {
       const endpoint: string = this.configService.get<string>(
-        'ENDP_GESTION_CONTRACTUAL_CRUD',
+        'GESTION_CONTRACTUAL_CRUD_SERVICE',
       );
       const url = `${endpoint}cdp/contrato/${id}`;
       const { data } = await axios.get<ContratoResponse>(url);
@@ -297,7 +297,7 @@ export class VariablesClausulasService {
   ): Promise<LugarEjecucionResponse<any>> {
     try {
       const endpoint: string = this.configService.get<string>(
-        'ENDP_GESTION_CONTRACTUAL_CRUD',
+        'GESTION_CONTRACTUAL_CRUD_SERVICE',
       );
       const url = `${endpoint}lugares-ejecucion/contrato/${id}`;
       const { data } = await axios.get<LugarEjecucionResponse<any>>(url);
@@ -310,7 +310,7 @@ export class VariablesClausulasService {
   async obetenerProveedor(doc: string): Promise<ProveedorResponse> {
     try {
       const endpoint: string = this.configService.get<string>(
-        'ENDP_PROVEEDORES_MID',
+        'PROVEEDORES_MID_SERVICE',
       );
       const url = `${endpoint}contratistas?id=${doc}`;
       const { data } = await axios.get<ContratoResponse>(url);
