@@ -22,11 +22,11 @@ export class OrdenadoresService {
   constructor(private readonly configService: ConfigService) {
     this.axiosInstance = createAxiosInstance(
       this.configService,
-      'ENDP_GESTION_CONTRACTUAL_CRUD'
+      'GESTION_CONTRACTUAL_CRUD_SERVICE'
     )
     this.supervisoresOrdenadoresMidAxiosInstance = createAxiosInstance(
       this.configService,
-      'ENDP_SUPERVISORES_ORDENADORES_MID'
+      'ORDENADOR_SUPERVISOR_MID_SERVICE'
     );
   }
 

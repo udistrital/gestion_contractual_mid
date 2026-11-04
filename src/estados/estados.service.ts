@@ -32,7 +32,7 @@ export class EstadosService {
   ) {
     this.axiosInstance = createAxiosInstance(
       this.configService,
-      'ENDP_GESTION_CONTRACTUAL_CRUD',
+      'GESTION_CONTRACTUAL_CRUD_SERVICE',
     );
   }
 
@@ -94,7 +94,7 @@ export class EstadosService {
   private async consultarUsuario(id: number): Promise<UsuarioResponse> {
     try {
       const endpoint: string =
-        this.configService.get<string>('ENDP_TERCEROS_CRUD');
+        this.configService.get<string>('TERCEROS_CRUD_SERVICE');
 
       if (!endpoint) {
         this.logger.error('No se encontró la URL del servicio de terceros');

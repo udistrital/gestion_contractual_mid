@@ -46,7 +46,7 @@ describe('PolizasService', () => {
     jest.clearAllMocks();
   });
 
-  it('crea la instancia de axios con ENDP_GESTION_CONTRACTUAL_CRUD', () => {
+  it('crea la instancia de axios con GESTION_CONTRACTUAL_CRUD_SERVICE', () => {
     expect(mockedAxios.create).toHaveBeenCalledWith(
       expect.objectContaining({
         baseURL: 'http://crud.test/',
@@ -55,9 +55,9 @@ describe('PolizasService', () => {
     );
   });
 
-  it('lanza error si falta ENDP_GESTION_CONTRACTUAL_CRUD', () => {
+  it('lanza error si falta GESTION_CONTRACTUAL_CRUD_SERVICE', () => {
     expect(() => new PolizasService({ get: () => undefined } as any)).toThrow(
-      'Configuración faltante para ENDP_GESTION_CONTRACTUAL_CRUD',
+      'Configuración faltante para GESTION_CONTRACTUAL_CRUD_SERVICE',
     );
   });
 

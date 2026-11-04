@@ -90,9 +90,9 @@ describe('EstadosController (e2e, CRUD simulados)', () => {
 
   beforeAll(async () => {
     await crud.iniciar();
-    process.env.ENDP_PARAMETROS_CRUD = crud.url;
-    process.env.ENDP_GESTION_CONTRACTUAL_CRUD = crud.url;
-    process.env.ENDP_TERCEROS_CRUD = crud.url;
+    process.env.PARAMETROS_CRUD_SERVICE = crud.url;
+    process.env.GESTION_CONTRACTUAL_CRUD_SERVICE = crud.url;
+    process.env.TERCEROS_CRUD_SERVICE = crud.url;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
