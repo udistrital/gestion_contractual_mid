@@ -6,12 +6,14 @@ import nock from 'nock';
 import { PolizasModule } from './../src/polizas/polizas.module';
 
 // e2e sin red real: controllers + service + axios reales, gestion_contractual_crud
-// simulado con nock. Verifica que el MID reenvía rutas, query, body, status y
-// sobre de respuesta del CRUD sin transformarlos (#360).
+// simulado con nock. Verifica que el MID traduce rutas, filtros y cuerpos al CRUD
+// Beego v2 (#397) y conserva la forma de respuesta que usan sus consumidores.
 const CRUD = 'http://crud.test';
 
 const filtroContrato = (contratoId: number) =>
   JSON.stringify({ contrato_general_id: contratoId, activo: true });
+const queryBeego = (contratoId: number) =>
+  `contrato_general_id.id:${contratoId},activo:true`;
 
 describe('Pólizas y amparos-polizas (e2e con nock)', () => {
   let app: INestApplication;
@@ -47,17 +49,23 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
   });
 
   describe('polizas', () => {
-    it('GET 200: reenvía query y limit, devuelve el sobre del CRUD', async () => {
+    it('GET 200: traduce el filtro y devuelve la forma anterior', async () => {
       const body = {
         Success: true,
-        Status: 200,
-        Message: 'Pólizas encontradas',
-        Data: [{ id: 1, contrato_general_id: 10 }],
+        Status: '200',
+        Message: 'Request successful',
+        Data: [
+          {
+            id: 1,
+            contrato_general_id: { id: 10, numero_contrato: null },
+            fecha_fin: '2026-12-31T00:00:00Z',
+          },
+        ],
         Metadata: { total: 1 },
       };
       const crud = nock(CRUD)
-        .get('/polizas')
-        .query({ query: filtroContrato(10), limit: '1' })
+        .get('/v1/poliza')
+        .query({ query: queryBeego(10), limit: '1' })
         .reply(200, body);
 
       const res = await request(app.getHttpServer())
@@ -65,22 +73,31 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
         .query({ query: filtroContrato(10), limit: 1 })
         .expect(200);
 
-      expect(res.body).toEqual(body);
+      expect(res.body).toEqual({
+        ...body,
+        Status: 200,
+        Data: [{ id: 1, contrato_general_id: 10, fecha_fin: '2026-12-31' }],
+      });
       expect(crud.isDone()).toBe(true);
     });
 
-    it('POST 201: reenvía el body', async () => {
+    it('POST 201: envía el contrato como { id }', async () => {
       const poliza = { contrato_general_id: 10, numero_poliza: 'P-1' };
       const crud = nock(CRUD)
-        .post('/polizas', poliza)
-        .reply(201, { Success: true, Status: 201, Data: { id: 3, ...poliza } });
+        .post('/v1/poliza', { ...poliza, contrato_general_id: { id: 10 } })
+        .reply(201, {
+          Success: true,
+          Status: '201',
+          Data: { id: 3, contrato_general_id: { id: 10 } },
+        });
 
       const res = await request(app.getHttpServer())
         .post('/polizas')
         .send(poliza)
         .expect(201);
 
-      expect(res.body.Data.id).toBe(3);
+      expect(res.body.Data).toEqual({ id: 3, contrato_general_id: 10 });
+      expect(res.body.Status).toBe(201);
       expect(crud.isDone()).toBe(true);
     });
 
@@ -91,7 +108,7 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
         Message: 'contrato_general_id es requerido',
         Data: 'contrato_general_id es requerido',
       };
-      const crud = nock(CRUD).post('/polizas').times(1).reply(400, error);
+      const crud = nock(CRUD).post('/v1/poliza').times(1).reply(400, error);
 
       const res = await request(app.getHttpServer())
         .post('/polizas')
@@ -104,7 +121,7 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
 
     it('PUT 404: propaga póliza no encontrada', async () => {
       nock(CRUD)
-        .put('/polizas/999', { numero_poliza: 'X' })
+        .put('/v1/poliza/999', { numero_poliza: 'X' })
         .reply(404, { Success: false, Status: 404, Message: 'No encontrada' });
 
       const res = await request(app.getHttpServer())
@@ -128,16 +145,16 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
   });
 
   describe('amparos-polizas', () => {
-    it('GET 200: reenvía query, limit, sortBy y orderBy', async () => {
+    it('GET 200: traduce filtro y orden', async () => {
       const crud = nock(CRUD)
-        .get('/amparos-polizas')
+        .get('/v1/amparo_poliza')
         .query({
-          query: filtroContrato(10),
+          query: queryBeego(10),
           limit: '0',
-          sortBy: 'id',
-          orderBy: 'ASC',
+          sortby: 'id',
+          order: 'asc',
         })
-        .reply(200, { Success: true, Status: 200, Data: [{ id: 1 }] });
+        .reply(200, { Success: true, Status: '200', Data: [{ id: 1 }] });
 
       const res = await request(app.getHttpServer())
         .get('/amparos-polizas')
@@ -153,7 +170,7 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
       expect(crud.isDone()).toBe(true);
     });
 
-    it('POST parcial: conserva el body de creación parcial del CRUD (HTTP 201)', async () => {
+    it('POST en lote: sigue en la ruta anterior, sin traducir el arreglo', async () => {
       const amparos = [
         { contrato_general_id: 10, amparo_id: 6602 },
         { contrato_general_id: 10, amparo_id: 0 },
@@ -176,11 +193,11 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
     it('PUT 200: vincula el amparo a la póliza', async () => {
       const cambios = { poliza_id: 3, valor: 1000 };
       const crud = nock(CRUD)
-        .put('/amparos-polizas/5', cambios)
+        .put('/v1/amparo_poliza/5', { ...cambios, poliza_id: { id: 3 } })
         .reply(200, {
           Success: true,
-          Status: 200,
-          Data: { id: 5, ...cambios },
+          Status: '200',
+          Data: { id: 5, valor: 1000, poliza_id: { id: 3 } },
         });
 
       await request(app.getHttpServer())
@@ -193,24 +210,24 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
 
     it('DELETE 200: borrado lógico', async () => {
       const crud = nock(CRUD)
-        .delete('/amparos-polizas/5')
+        .delete('/v1/amparo_poliza/5')
         .reply(200, {
           Success: true,
-          Status: 200,
-          Data: { id: 5, activo: false },
+          Status: '200',
+          Data: { Id: 5 },
         });
 
       const res = await request(app.getHttpServer())
         .delete('/amparos-polizas/5')
         .expect(200);
 
-      expect(res.body.Data.activo).toBe(false);
+      expect(res.body.Data).toEqual({ Id: 5 });
       expect(crud.isDone()).toBe(true);
     });
 
     it('DELETE 500: no reintenta escrituras', async () => {
       const crud = nock(CRUD)
-        .delete('/amparos-polizas/5')
+        .delete('/v1/amparo_poliza/5')
         .times(2)
         .reply(500, { Success: false, Status: 500 });
 
@@ -222,11 +239,11 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
     });
 
     it('GET reintenta ante 503 y responde 200', async () => {
-      nock(CRUD).get('/amparos-polizas').query(true).reply(503, {});
+      nock(CRUD).get('/v1/amparo_poliza').query(true).reply(503, {});
       nock(CRUD)
-        .get('/amparos-polizas')
+        .get('/v1/amparo_poliza')
         .query(true)
-        .reply(200, { Success: true, Status: 200, Data: [] });
+        .reply(200, { Success: true, Status: '200', Data: [] });
 
       await request(app.getHttpServer()).get('/amparos-polizas').expect(200);
     }, 10000);

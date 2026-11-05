@@ -61,19 +61,88 @@ describe('PolizasService', () => {
     );
   });
 
-  it('consultar: reenvía la ruta y los query params, devuelve status y body del CRUD', async () => {
-    const body = { Success: true, Status: 200, Data: [{ id: 1 }] };
-    requestMock.mockResolvedValue({ status: 200, data: body });
-    const params = { query: '{"contrato_general_id":1}', limit: '1' };
+  it('consultar: traduce filtro y orden, y devuelve la forma anterior', async () => {
+    requestMock.mockResolvedValue({
+      status: 200,
+      data: {
+        Success: true,
+        Status: '200',
+        Data: [
+          {
+            id: 1,
+            contrato_general_id: { id: 1, numero_contrato: null },
+            fecha_inicio: '2026-01-01T00:00:00Z',
+          },
+        ],
+        Metadata: { total: 1 },
+      },
+    });
 
-    const resultado = await service.consultar('polizas', params);
+    const resultado = await service.consultar('v1/poliza', {
+      query: '{"contrato_general_id":1,"activo":true}',
+      limit: '1',
+      sortBy: 'id',
+      orderBy: 'ASC',
+      include: 'estados',
+    });
 
     expect(requestMock).toHaveBeenCalledWith({
       method: 'GET',
-      url: 'polizas',
-      params,
+      url: 'v1/poliza',
+      params: {
+        query: 'contrato_general_id.id:1,activo:true',
+        sortby: 'id',
+        order: 'asc',
+        limit: '1',
+        offset: undefined,
+      },
     });
-    expect(resultado).toEqual({ status: 200, body });
+    expect(resultado).toEqual({
+      status: 200,
+      body: {
+        Success: true,
+        Status: 200,
+        Data: [
+          { id: 1, contrato_general_id: 1, fecha_inicio: '2026-01-01' },
+        ],
+        Metadata: { total: 1 },
+      },
+    });
+  });
+
+  it('consultar: responde 400 si el filtro no es JSON', async () => {
+    const error = await Promise.resolve()
+      .then(() => service.consultar('v1/poliza', { query: 'activo:true' }))
+      .catch((e) => e);
+
+    expect(error.getStatus()).toBe(400);
+    expect(requestMock).not.toHaveBeenCalled();
+  });
+
+  it('crear: envía la llave foránea como { id }', async () => {
+    requestMock.mockResolvedValue({
+      status: 201,
+      data: {
+        Success: true,
+        Status: '201',
+        Data: { id: 3, contrato_general_id: { id: 1 } },
+      },
+    });
+
+    const resultado = await service.crear('v1/poliza', {
+      contrato_general_id: 1,
+    });
+
+    expect(requestMock).toHaveBeenCalledWith({
+      method: 'POST',
+      url: 'v1/poliza',
+      data: { contrato_general_id: { id: 1 } },
+    });
+    expect(resultado.body).toEqual({
+      Success: true,
+      Status: 201,
+      Data: { id: 3, contrato_general_id: 1 },
+    });
   });
 
   it('crear: reenvía el body y conserva el status 206 del CRUD', async () => {
@@ -95,26 +164,38 @@ describe('PolizasService', () => {
     expect(resultado).toEqual({ status: 206, body });
   });
 
-  it('actualizar: PUT a ruta/id con el body', async () => {
+  it('actualizar: PUT a ruta/id y conserva poliza_id en null', async () => {
     requestMock.mockResolvedValue({ status: 200, data: { Success: true } });
 
-    await service.actualizar('polizas', 3, { numero_poliza: 'A1' });
+    await service.actualizar('v1/amparo_poliza', 3, { poliza_id: null });
 
     expect(requestMock).toHaveBeenCalledWith({
       method: 'PUT',
-      url: 'polizas/3',
-      data: { numero_poliza: 'A1' },
+      url: 'v1/amparo_poliza/3',
+      data: { poliza_id: null },
+    });
+  });
+
+  it('actualizar: envía poliza_id como { id }', async () => {
+    requestMock.mockResolvedValue({ status: 200, data: { Success: true } });
+
+    await service.actualizar('v1/amparo_poliza', 3, { poliza_id: 9 });
+
+    expect(requestMock).toHaveBeenCalledWith({
+      method: 'PUT',
+      url: 'v1/amparo_poliza/3',
+      data: { poliza_id: { id: 9 } },
     });
   });
 
   it('eliminar: DELETE a ruta/id', async () => {
     requestMock.mockResolvedValue({ status: 200, data: { Success: true } });
 
-    await service.eliminar('amparos-polizas', 5);
+    await service.eliminar('v1/amparo_poliza', 5);
 
     expect(requestMock).toHaveBeenCalledWith({
       method: 'DELETE',
-      url: 'amparos-polizas/5',
+      url: 'v1/amparo_poliza/5',
     });
   });
 
@@ -122,7 +203,7 @@ describe('PolizasService', () => {
     const body = { Success: false, Status: 404, Message: 'No encontrado' };
     requestMock.mockRejectedValue(crearErrorAxios(404, body));
 
-    const error = await service.actualizar('polizas', 99, {}).catch((e) => e);
+    const error = await service.actualizar('v1/poliza', 99, {}).catch((e) => e);
 
     expect(error).toBeInstanceOf(HttpException);
     expect(error.getStatus()).toBe(404);
@@ -132,7 +213,7 @@ describe('PolizasService', () => {
   it('no reintenta un GET con 400 del CRUD', async () => {
     requestMock.mockRejectedValue(crearErrorAxios(400, { Status: 400 }));
 
-    await expect(service.consultar('polizas', {})).rejects.toBeInstanceOf(
+    await expect(service.consultar('v1/poliza', {})).rejects.toBeInstanceOf(
       HttpException,
     );
     expect(requestMock).toHaveBeenCalledTimes(1);
@@ -144,7 +225,7 @@ describe('PolizasService', () => {
       .mockRejectedValueOnce(crearErrorAxios(503, {}))
       .mockResolvedValueOnce({ status: 200, data: { Data: [] } });
 
-    const promesa = service.consultar('polizas', {});
+    const promesa = service.consultar('v1/poliza', {});
     await jest.advanceTimersByTimeAsync(1000);
 
     await expect(promesa).resolves.toEqual({ status: 200, body: { Data: [] } });
@@ -154,7 +235,7 @@ describe('PolizasService', () => {
   it('no reintenta un POST ante 5xx (evita escrituras duplicadas)', async () => {
     requestMock.mockRejectedValue(crearErrorAxios(500, { Status: 500 }));
 
-    const error = await service.crear('polizas', {}).catch((e) => e);
+    const error = await service.crear('v1/poliza', {}).catch((e) => e);
 
     expect(error.getStatus()).toBe(500);
     expect(requestMock).toHaveBeenCalledTimes(1);
@@ -163,7 +244,7 @@ describe('PolizasService', () => {
   it('error sin respuesta (red/timeout) devuelve 500 con sobre estándar', async () => {
     requestMock.mockRejectedValue(crearErrorAxios());
 
-    const error = await service.crear('polizas', {}).catch((e) => e);
+    const error = await service.crear('v1/poliza', {}).catch((e) => e);
 
     expect(error.getStatus()).toBe(500);
     expect(error.getResponse()).toEqual({

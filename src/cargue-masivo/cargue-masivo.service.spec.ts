@@ -9,7 +9,7 @@ describe('CargueMasivoService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CargueMasivoService,
-        { provide: ConfigService, useValue: {} },
+        { provide: ConfigService, useValue: { get: () => 'http://crud/' } },
       ],
     }).compile();
 
@@ -18,5 +18,14 @@ describe('CargueMasivoService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('apunta al CRUD Beego v2 y envía el contrato como { id }', () => {
+    const estructura = service.crearEstructura('YmFzZTY0', {
+      contrato_general_id: 7,
+    });
+
+    expect(estructura.endpoint).toBe('v1/especificacion_tecnica');
+    expect(estructura.complement).toEqual({ contrato_general_id: { id: 7 } });
   });
 });

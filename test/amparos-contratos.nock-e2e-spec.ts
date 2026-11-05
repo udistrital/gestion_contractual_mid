@@ -12,7 +12,7 @@ const CRUD = 'http://crud.test';
 const PARAMETROS = 'http://parametros.test';
 
 const queryAmparos = (contratoId: number) => ({
-  query: JSON.stringify({ contrato_general_id: contratoId, activo: true }),
+  query: `contrato_general_id.id:${contratoId},activo:true`,
   limit: '0',
 });
 
@@ -57,7 +57,7 @@ describe('AmparosContratosController (e2e con nock)', () => {
 
   it('200: filtra por contrato+activo y enriquece con el nombre del parámetro', async () => {
     const crud = nock(CRUD)
-      .get('/amparos-polizas')
+      .get('/v1/amparo_poliza')
       .query(queryAmparos(10))
       .reply(200, {
         Data: [
@@ -108,7 +108,7 @@ describe('AmparosContratosController (e2e con nock)', () => {
 
   it('404: contrato sin amparos activos, no consulta parámetros', async () => {
     nock(CRUD)
-      .get('/amparos-polizas')
+      .get('/v1/amparo_poliza')
       .query(queryAmparos(999))
       .reply(200, { Data: [] });
     const parametros = nock(PARAMETROS)
@@ -123,7 +123,7 @@ describe('AmparosContratosController (e2e con nock)', () => {
 
   it('400: contratoId no entero no llega al CRUD', async () => {
     const crud = nock(CRUD)
-      .get('/amparos-polizas')
+      .get('/v1/amparo_poliza')
       .query(true)
       .reply(200, { Data: [{ id: 1 }] });
 
@@ -134,7 +134,7 @@ describe('AmparosContratosController (e2e con nock)', () => {
 
   it('500: parámetros responde Status distinto de 200', async () => {
     nock(CRUD)
-      .get('/amparos-polizas')
+      .get('/v1/amparo_poliza')
       .query(queryAmparos(10))
       .reply(200, { Data: [{ id: 1, amparo_id: 6602 }] });
     nock(PARAMETROS)
@@ -147,11 +147,11 @@ describe('AmparosContratosController (e2e con nock)', () => {
 
   it('reintenta ante un fallo transitorio del CRUD y responde 200', async () => {
     nock(CRUD)
-      .get('/amparos-polizas')
+      .get('/v1/amparo_poliza')
       .query(queryAmparos(10))
       .reply(503, { Message: 'no disponible' });
     nock(CRUD)
-      .get('/amparos-polizas')
+      .get('/v1/amparo_poliza')
       .query(queryAmparos(10))
       .reply(200, { Data: [{ id: 1, amparo_id: 6602 }] });
     nock(PARAMETROS)
@@ -171,7 +171,7 @@ describe('AmparosContratosController (e2e con nock)', () => {
 
   it('500: CRUD caído de forma persistente agota los 3 reintentos (4 llamadas)', async () => {
     const crud = nock(CRUD)
-      .get('/amparos-polizas')
+      .get('/v1/amparo_poliza')
       .query(queryAmparos(10))
       .times(4)
       .reply(500, { Message: 'error' });
