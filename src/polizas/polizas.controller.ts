@@ -21,7 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { PolizasService } from './polizas.service';
 
-const RUTA_CRUD = 'polizas';
+const RUTA_CRUD = 'v1/poliza';
 
 @ApiTags('polizas')
 @Controller('polizas')

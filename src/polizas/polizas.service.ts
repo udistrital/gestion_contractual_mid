@@ -2,6 +2,11 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
+import {
+  aCuerpoBeego,
+  aFormaAnterior,
+  aQueryBeego,
+} from '../utils/query-beego.utils';
 
 export interface RespuestaCrud {
   status: number;
@@ -9,8 +14,8 @@ export interface RespuestaCrud {
 }
 
 // Intermediario entre el MF y gestion_contractual_crud para pólizas y amparos
-// (#360). Reenvía query, body y sobre de respuesta sin transformarlos,
-// para que el MF consuma el MID con el mismo contrato que tenía el CRUD.
+// (#360). Traduce filtro, cuerpo y respuesta al CRUD Beego v2 (#397), para que
+// el MF y minuta_contractual_mid conserven el contrato que tenían con el CRUD.
 @Injectable()
 export class PolizasService {
   private readonly logger = new Logger(PolizasService.name);
@@ -24,19 +29,70 @@ export class PolizasService {
   }
 
   consultar(ruta: string, params: Record<string, any>): Promise<RespuestaCrud> {
-    return this.reenviar({ method: 'GET', url: ruta, params }, true);
+    const { query, sortBy, orderBy, limit, offset } = params;
+    return this.reenviar(
+      {
+        method: 'GET',
+        url: ruta,
+        params: {
+          ...aQueryBeego(this.leerFiltro(query), { sortBy, orderBy }),
+          limit,
+          offset,
+        },
+      },
+      true,
+    );
   }
 
   crear(ruta: string, body: any): Promise<RespuestaCrud> {
-    return this.reenviar({ method: 'POST', url: ruta, data: body });
+    return this.reenviar({
+      method: 'POST',
+      url: ruta,
+      data: aCuerpoBeego(body),
+    });
   }
 
   actualizar(ruta: string, id: number, body: any): Promise<RespuestaCrud> {
-    return this.reenviar({ method: 'PUT', url: `${ruta}/${id}`, data: body });
+    return this.reenviar({
+      method: 'PUT',
+      url: `${ruta}/${id}`,
+      data: aCuerpoBeego(body),
+    });
   }
 
   eliminar(ruta: string, id: number): Promise<RespuestaCrud> {
     return this.reenviar({ method: 'DELETE', url: `${ruta}/${id}` });
+  }
+
+  private leerFiltro(query?: string): Record<string, unknown> {
+    if (!query) return {};
+    try {
+      return JSON.parse(query);
+    } catch {
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.BAD_REQUEST,
+          Message: 'El filtro query debe ser un JSON válido',
+          Data: null,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  // El CRUD Beego v2 responde Status como texto; el MF lo espera como número.
+  private aRespuestaAnterior(cuerpo: any): any {
+    const { Data, Status } = cuerpo;
+    return {
+      ...cuerpo,
+      ...(Status !== undefined && { Status: Number(Status) }),
+      Data: Array.isArray(Data)
+        ? Data.map(aFormaAnterior)
+        : Data && typeof Data === 'object'
+          ? aFormaAnterior(Data)
+          : Data,
+    };
   }
 
   // Solo los GET se reintentan: repetir un POST/PUT/DELETE podría duplicar
@@ -52,7 +108,10 @@ export class PolizasService {
           )
         : await this.gestionContractualCrud.request(config);
 
-      return { status: response.status, body: response.data };
+      return {
+        status: response.status,
+        body: this.aRespuestaAnterior(response.data),
+      };
     } catch (error) {
       // Error HTTP del CRUD (400, 404, 500...): se propaga tal cual.
       if (axios.isAxiosError(error) && error.response) {
