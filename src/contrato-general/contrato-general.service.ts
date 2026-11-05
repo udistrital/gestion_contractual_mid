@@ -41,13 +41,13 @@ export class ContratoGeneralService {
     modalidad_seleccion_id: 115,
     regimen_contratacion_id: 116,
     procedimiento_id: 117,
-    clase_contratista_id: 120,
+    clase_proveedor_id: 120,
     tipo_moneda_id: 122,
-    tipo_gasto_Id: 123,
+    tipo_gasto_id: 123,
     origen_recursos_id: 124,
-    origen_presupuestos_id: 125,
+    origen_presupuesto_id: 125,
     tema_gasto_inversion_id: 126,
-    medio_pogo_id: 127,
+    medio_pago_id: 127,
     unidad_ejecutora_id: 146,
     estado_contrato_id: 137,
     tipo_persona_id: 132,
@@ -58,7 +58,7 @@ export class ContratoGeneralService {
     try {
       const response = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<ContratoResponse>(
-          `contratos-generales/${id}`,
+          `v1/contrato_general/${id}`,
         ),
       );
 
@@ -261,7 +261,7 @@ export class ContratoGeneralService {
 
           if (contratoRaw.contratista.clase_contratista_id) {
             const claseContratistaMap = cacheParametros.get(
-              this.parameterMap.clase_contratista_id,
+              this.parameterMap.clase_proveedor_id,
             );
             if (claseContratistaMap) {
               contratoTransformado.contratista.clase_contratista_id =
@@ -466,7 +466,7 @@ export class ContratoGeneralService {
         cacheParametros,
         ids,
       );
-      return contratoTransformado;
+      return this.aFormaConsumidores(contratoTransformado);
     } catch (error) {
       this.logger.error(
         `Error en getContratoTransformed para ID ${id}:`,
@@ -474,6 +474,28 @@ export class ContratoGeneralService {
       );
       throw error;
     }
+  }
+
+  // El CRUD Beego v2 renombró estos campos y entrega las columnas date con hora;
+  // el MF y minuta_contractual_mid siguen usando la forma del CRUD anterior.
+  private aFormaConsumidores(contrato: any): any {
+    const {
+      fecha_suscripcion_estudio,
+      origen_presupuesto_id,
+      origen_presupuesto,
+      ...resto
+    } = contrato;
+    const soloFecha = (fecha?: string | null) => fecha?.slice(0, 10) ?? fecha;
+
+    return {
+      ...resto,
+      fecha_inicial: soloFecha(contrato.fecha_inicial),
+      fecha_final: soloFecha(contrato.fecha_final),
+      fecha_suscripcion: soloFecha(contrato.fecha_suscripcion),
+      fecha_suscripcion_estudios: soloFecha(fecha_suscripcion_estudio),
+      origen_presupuestos_id: origen_presupuesto_id,
+      origen_presupuestos: origen_presupuesto,
+    };
   }
 
   private async consultarProveedor(id: number): Promise<string | null> {
@@ -501,7 +523,7 @@ export class ContratoGeneralService {
         'GESTION_CONTRACTUAL_CRUD_SERVICE',
       );
 
-      const url = `${urlGestionContractualCrud}contratos-generales/${endpoint}/`;
+      const url = `${urlGestionContractualCrud}v1/contrato_general/${endpoint}`;
       const { data } = await axios.post<any>(url, body);
 
       if (!data.Success || data.Status != '200') {
@@ -521,7 +543,10 @@ export class ContratoGeneralService {
         throw new Error(`El campo unidad_ejecutora_id es requerido`);
       }
 
-      let conteo = await this.obtenerConteo(body, 'conteo-consecutivo');
+      let conteo = await this.obtenerConteo(
+        { unidad_ejecutora_id: Number(unidad_ejecutora_id) },
+        'conteo-consecutivo',
+      );
       if (!Number.isInteger(conteo) || conteo < 0) {
         throw new Error('Error al obtener el conteo de los contratos');
       }
@@ -553,7 +578,14 @@ export class ContratoGeneralService {
         throw new Error('Unidad ejecutora invalida');
       }
 
-      let conteo = await this.obtenerConteo(body, 'conteo-numero-contrato');
+      let conteo = await this.obtenerConteo(
+        {
+          unidad_ejecutora_id: Number(unidad_ejecutora_id),
+          vigencia: Number(vigencia),
+          estado: Number(estado),
+        },
+        'conteo-numero-contrato',
+      );
       if (!Number.isInteger(conteo) || conteo < 0) {
         throw new Error('Error al obtener el conteo de los contratos');
       }

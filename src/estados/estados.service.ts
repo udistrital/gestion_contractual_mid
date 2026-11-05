@@ -16,6 +16,7 @@ import {
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { ParametroService } from '../parametro/parametro.service';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
+import { aQueryBeego } from '../utils/query-beego.utils';
 
 @Injectable()
 export class EstadosService {
@@ -50,7 +51,12 @@ export class EstadosService {
   ): Promise<any[]> {
     return await Promise.all(
       estados.map(async (estado) => {
-        const estadoTransformado = { ...estado };
+        // El CRUD Beego v2 anida el contrato completo; el MF solo usa su id.
+        const estadoTransformado = {
+          ...estado,
+          contrato_general_id:
+            estado.contrato_general_id?.id ?? estado.contrato_general_id,
+        };
 
         const estadosGenerales = estadosPorTipoParametro.get(
           this.idsTipoParametro.estadosGenerales,
@@ -119,15 +125,13 @@ export class EstadosService {
         ? JSON.parse(`{${queryParams.queryFilter}}`)
         : {};
       const params = {
-        sortBy: queryParams.sortBy,
-        orderBy: queryParams.orderBy,
-        limit: queryParams.limit,
+        ...aQueryBeego(queryFilter, queryParams),
+        limit: queryParams.limit ?? 0,
         offset: queryParams.offset,
-        query: JSON.stringify({ ...queryFilter }),
       };
 
       const response = await fetchWithRetry(() =>
-        this.axiosInstance.get<PaginatedResponse<any>>('estados-contrato', {
+        this.axiosInstance.get<PaginatedResponse<any>>('v1/estado_contrato/', {
           params,
         }),
       );
