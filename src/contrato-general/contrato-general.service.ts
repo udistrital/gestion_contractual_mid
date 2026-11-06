@@ -538,15 +538,33 @@ export class ContratoGeneralService {
     }
   }
 
+  // vigencia_id es opcional mientras el CRUD no cuente el consecutivo por vigencia (P1).
+  private leerVigenciaId(body: any): number | undefined {
+    const { vigencia_id } = body;
+    if (vigencia_id === undefined || vigencia_id === null || vigencia_id === '') {
+      return undefined;
+    }
+
+    const vigenciaId = Number(vigencia_id);
+    if (!Number.isInteger(vigenciaId) || vigenciaId <= 0) {
+      throw new Error('El campo vigencia_id debe ser un entero');
+    }
+    return vigenciaId;
+  }
+
   async generarConsecutivo(body: any) {
     try {
       const { unidad_ejecutora_id } = body;
       if (!unidad_ejecutora_id) {
         throw new Error(`El campo unidad_ejecutora_id es requerido`);
       }
+      const vigenciaId = this.leerVigenciaId(body);
 
       let conteo = await this.obtenerConteo(
-        { unidad_ejecutora_id: Number(unidad_ejecutora_id) },
+        {
+          unidad_ejecutora_id: Number(unidad_ejecutora_id),
+          ...(vigenciaId && { vigencia_id: vigenciaId }),
+        },
         'conteo-consecutivo',
       );
       if (!Number.isInteger(conteo) || conteo < 0) {
@@ -568,7 +586,9 @@ export class ContratoGeneralService {
       if (!unidad_ejecutora_id) {
         throw new Error(`El campo unidad_ejecutora_id es requerido`);
       }
-      if (!vigencia) {
+      const vigenciaId = this.leerVigenciaId(body);
+      const vigenciaConteo = vigenciaId ?? vigencia;
+      if (!vigenciaConteo) {
         throw new Error('El campo vigencia es requerido');
       }
       if (!estado) {
@@ -583,7 +603,9 @@ export class ContratoGeneralService {
       let conteo = await this.obtenerConteo(
         {
           unidad_ejecutora_id: Number(unidad_ejecutora_id),
-          vigencia: Number(vigencia),
+          // El CRUD filtra vigencia_id con la llave `vigencia` de este cuerpo.
+          vigencia: Number(vigenciaConteo),
+          ...(vigenciaId && { vigencia_id: vigenciaId }),
           estado: Number(estado),
         },
         'conteo-numero-contrato',

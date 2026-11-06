@@ -272,6 +272,50 @@ describe('ContratoGeneralService', () => {
       );
     });
 
+    it('generarConsecutivo reenvía vigencia_id como entero cuando viene', async () => {
+      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));
+
+      await service.generarConsecutivo({
+        unidad_ejecutora_id: '6818',
+        vigencia_id: '9001',
+      });
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://test/v1/contrato_general/conteo-consecutivo',
+        { unidad_ejecutora_id: 6818, vigencia_id: 9001 },
+      );
+    });
+
+    it('generarNumeroContrato cuenta por vigencia_id cuando viene', async () => {
+      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(2));
+
+      await service.generarNumeroContrato({
+        unidad_ejecutora_id: 6819,
+        vigencia_id: 9001,
+        estado: 6774,
+      });
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://test/v1/contrato_general/conteo-numero-contrato',
+        { unidad_ejecutora_id: 6819, vigencia: 9001, vigencia_id: 9001, estado: 6774 },
+      );
+    });
+
+    it.each(['abc', '2026.5', 0, -1])(
+      'rechaza vigencia_id %p sin llamar al CRUD',
+      async (vigencia_id) => {
+        mockedAxios.post = jest.fn();
+
+        await expect(
+          service.generarConsecutivo({ unidad_ejecutora_id: 6818, vigencia_id }),
+        ).rejects.toThrow('El campo vigencia_id debe ser un entero');
+        await expect(
+          service.generarNumeroContrato({ unidad_ejecutora_id: 6818, vigencia_id, estado: 6774 }),
+        ).rejects.toThrow('El campo vigencia_id debe ser un entero');
+        expect(mockedAxios.post).not.toHaveBeenCalled();
+      },
+    );
+
     it('generarNumeroContrato sigue exigiendo la vigencia', async () => {
       mockedAxios.post = jest.fn();
 
