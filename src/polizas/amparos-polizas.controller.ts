@@ -21,8 +21,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PolizasService } from './polizas.service';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
-const RUTA_CRUD = 'v1/amparo_poliza';
+const RUTA_CRUD = RECURSOS_CRUD.amparoPoliza;
 // El CRUD Beego v2 no registra en lote: se conserva la ruta hasta definir ese caso.
 const RUTA_LOTE_CRUD = 'amparos-polizas';
 

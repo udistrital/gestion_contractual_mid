@@ -25,7 +25,7 @@ describe('CargueMasivoService', () => {
       contrato_general_id: 7,
     });
 
-    expect(estructura.endpoint).toBe('v1/especificacion_tecnica');
+    expect(estructura.endpoint).toBe('especificacion_tecnica');
     expect(estructura.complement).toEqual({ contrato_general_id: { id: 7 } });
   });
 });

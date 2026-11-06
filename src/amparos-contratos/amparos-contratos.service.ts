@@ -10,6 +10,7 @@ import { ParametroService } from 'src/parametro/parametro.service';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 import { aFormaAnterior, aQueryBeego } from '../utils/query-beego.utils';
 import { ConfigService } from '@nestjs/config';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
 @Injectable()
 export class AmparosContratosService {
@@ -33,7 +34,7 @@ export class AmparosContratosService {
       // gestion_contractual_crud no expone amparos/contrato/:id; se filtra por
       // contrato y se excluyen los amparos inactivos (soft delete).
       const amparosResponse = await fetchWithRetry(() =>
-        this.gestionContractualCrud.get<StandardResponse<any>>('v1/amparo_poliza', {
+        this.gestionContractualCrud.get<StandardResponse<any>>(RECURSOS_CRUD.amparoPoliza, {
           params: {
             ...aQueryBeego({ contrato_general_id: contratoId, activo: true }),
             limit: 0,
