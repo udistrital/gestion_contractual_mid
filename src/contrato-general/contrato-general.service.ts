@@ -17,6 +17,7 @@ import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { datos } from './conf';
 import { ParametroService } from '../parametro/parametro.service';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
 @Injectable()
 export class ContratoGeneralService {
@@ -58,7 +59,7 @@ export class ContratoGeneralService {
     try {
       const response = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<ContratoResponse>(
-          `v1/contrato_general/${id}`,
+          `${RECURSOS_CRUD.contratoGeneral}/${id}`,
         ),
       );
 
@@ -523,7 +524,8 @@ export class ContratoGeneralService {
         'GESTION_CONTRACTUAL_CRUD_SERVICE',
       );
 
-      const url = `${urlGestionContractualCrud}v1/contrato_general/${endpoint}`;
+      const base = urlGestionContractualCrud.replace(/\/$/, '');
+      const url = `${base}/${RECURSOS_CRUD.contratoGeneral}/${endpoint}`;
       const { data } = await axios.post<any>(url, body);
 
       if (!data.Success || data.Status != '200') {

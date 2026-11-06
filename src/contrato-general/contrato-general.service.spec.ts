@@ -57,7 +57,7 @@ describe('ContratoGeneralService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContratoGeneralService,
-        { provide: ConfigService, useValue: { get: () => 'http://test/' } },
+        { provide: ConfigService, useValue: { get: () => 'http://test/v1/' } },
         { provide: ParametroService, useValue: { getParametrosIndexados } },
       ],
     }).compile();
@@ -168,7 +168,7 @@ describe('ContratoGeneralService', () => {
   });
 
   describe('getContratoTransformed con el CRUD Beego v2', () => {
-    it('consulta v1/contrato_general y conserva la forma que usan los consumidores', async () => {
+    it('consulta contrato_general y conserva la forma que usan los consumidores', async () => {
       crudGetMock.mockResolvedValue({
         data: {
           Data: {
@@ -185,7 +185,7 @@ describe('ContratoGeneralService', () => {
 
       const result = await service.getContratoTransformed(1, true);
 
-      expect(crudGetMock).toHaveBeenCalledWith('v1/contrato_general/1');
+      expect(crudGetMock).toHaveBeenCalledWith('contrato_general/1');
       expect(result).toEqual({
         id: 1,
         tipo_contrato_id: 6540,
@@ -257,6 +257,18 @@ describe('ContratoGeneralService', () => {
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'http://test/v1/contrato_general/conteo-numero-contrato',
         { unidad_ejecutora_id: 6819, vigencia: 7001, estado: 6774 },
+      );
+    });
+
+    it('arma la ruta del conteo con la base que termina en /v1, sin barra final', async () => {
+      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));
+      (service as any).configService.get = () => 'http://test/v1';
+
+      await service.generarConsecutivo({ unidad_ejecutora_id: '6818' });
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://test/v1/contrato_general/conteo-consecutivo',
+        { unidad_ejecutora_id: 6818 },
       );
     });
 

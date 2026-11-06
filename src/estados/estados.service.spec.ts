@@ -157,7 +157,7 @@ describe('EstadosService', () => {
     );
   });
 
-  it('consulta v1/estado_contrato con el filtro y el orden del CRUD Beego v2', async () => {
+  it('consulta estado_contrato con el filtro y el orden del CRUD Beego v2', async () => {
     crudGetMock.mockResolvedValue({ data: { Data: [] } });
     getParametrosIndexados.mockResolvedValue(crearParametrosIndexados());
 
@@ -167,7 +167,7 @@ describe('EstadosService', () => {
       orderBy: 'DESC',
     });
 
-    expect(crudGetMock).toHaveBeenCalledWith('v1/estado_contrato/', {
+    expect(crudGetMock).toHaveBeenCalledWith('estado_contrato/', {
       params: {
         query: 'contrato_general_id.id:10',
         sortby: 'fecha_creacion',

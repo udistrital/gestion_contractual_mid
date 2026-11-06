@@ -17,6 +17,7 @@ import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { ParametroService } from '../parametro/parametro.service';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 import { aQueryBeego } from '../utils/query-beego.utils';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
 @Injectable()
 export class EstadosService {
@@ -131,9 +132,10 @@ export class EstadosService {
       };
 
       const response = await fetchWithRetry(() =>
-        this.axiosInstance.get<PaginatedResponse<any>>('v1/estado_contrato/', {
-          params,
-        }),
+        this.axiosInstance.get<PaginatedResponse<any>>(
+          `${RECURSOS_CRUD.estadoContrato}/`,
+          { params },
+        ),
       );
 
       if (!response.data?.Data) {
