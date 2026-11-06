@@ -14,7 +14,7 @@ API MID intermediaria entre el cliente ARGOv2 y el CURD de ARGO V2.
 ### Variables de Entorno
 ```shell
 
-GESTION_CONTRACTUAL_CRUD_SERVICE= [Endpoint gestión contractual crud]
+GESTION_CONTRACTUAL_CRUD_SERVICE= [Endpoint gestión contractual crud, debe incluir /v1/]
 PARAMETROS_CRUD_SERVICE= [Endpoint parametros crud]
 OIKOS_ESPACIOS_FISICOS_SERVICE= [Endpoint oikos]
 PROVEEDORES_MID_SERVICE= [Endpoint de info proveedores]
