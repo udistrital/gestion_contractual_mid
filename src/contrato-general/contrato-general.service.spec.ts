@@ -30,6 +30,9 @@ function crearParametrosIndexados(): Map<number, Map<number, ParametroBase>> {
   return new Map([
     [112, crearMapa([[6540, 'Prestación de servicios']])],
     [120, crearMapa([[5, 'Persona natural']])],
+    [123, crearMapa([[301, 'Funcionamiento']])],
+    [125, crearMapa([[300, 'Propios']])],
+    [127, crearMapa([[302, 'Transferencia']])],
     [132, crearMapa([[10, 'Natural']])],
     [137, crearMapa([[1, 'Por suscribir']])],
   ]);
@@ -54,7 +57,7 @@ describe('ContratoGeneralService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ContratoGeneralService,
-        { provide: ConfigService, useValue: { get: () => 'http://test/' } },
+        { provide: ConfigService, useValue: { get: () => 'http://test/v1/' } },
         { provide: ParametroService, useValue: { getParametrosIndexados } },
       ],
     }).compile();
@@ -161,6 +164,177 @@ describe('ContratoGeneralService', () => {
         '137',
         '132',
       ]);
+    });
+  });
+
+  describe('getContratoTransformed con el CRUD Beego v2', () => {
+    it('consulta contrato_general y conserva la forma que usan los consumidores', async () => {
+      crudGetMock.mockResolvedValue({
+        data: {
+          Data: {
+            id: 1,
+            tipo_contrato_id: 6540,
+            fecha_inicial: '2026-02-01T00:00:00Z',
+            fecha_final: null,
+            fecha_suscripcion_estudio: '2026-01-15T00:00:00Z',
+            origen_presupuesto_id: 300,
+            vigencia_id: 7001,
+          },
+        },
+      });
+
+      const result = await service.getContratoTransformed(1, true);
+
+      expect(crudGetMock).toHaveBeenCalledWith('contrato_general/1');
+      expect(result).toEqual({
+        id: 1,
+        tipo_contrato_id: 6540,
+        tipo_contrato: 'Prestación de servicios',
+        fecha_inicial: '2026-02-01',
+        fecha_final: null,
+        fecha_suscripcion_estudios: '2026-01-15',
+        origen_presupuestos_id: 300,
+        origen_presupuestos: 'Propios',
+        vigencia_id: 7001,
+      });
+    });
+
+    it('resuelve los campos cuyo nombre estaba mal en el mapa de parámetros', async () => {
+      crudGetMock.mockResolvedValue({
+        data: {
+          Data: {
+            id: 1,
+            tipo_gasto_id: 301,
+            medio_pago_id: 302,
+            clase_proveedor_id: 5,
+          },
+        },
+      });
+
+      const result = await service.getContratoTransformed(1, true);
+
+      expect(result).toEqual({
+        id: 1,
+        tipo_gasto_id: 301,
+        tipo_gasto: 'Funcionamiento',
+        medio_pago_id: 302,
+        medio_pago: 'Transferencia',
+        clase_proveedor_id: 5,
+        clase_proveedor: 'Persona natural',
+      });
+    });
+  });
+
+  describe('conteos del CRUD Beego v2', () => {
+    const respuestaConteo = (Data: number) => ({
+      data: { Success: true, Status: '200', Data },
+    });
+
+    it('generarConsecutivo llama a la ruta nueva con la unidad como entero', async () => {
+      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));
+
+      const consecutivo = await service.generarConsecutivo({
+        unidad_ejecutora_id: '6818',
+      });
+
+      expect(consecutivo).toBe('5');
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://test/v1/contrato_general/conteo-consecutivo',
+        { unidad_ejecutora_id: 6818 },
+      );
+    });
+
+    it('generarNumeroContrato envía enteros y arma prefijo + conteo + 1', async () => {
+      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(2));
+
+      const numero = await service.generarNumeroContrato({
+        unidad_ejecutora_id: '6819',
+        vigencia: '7001',
+        estado: '6774',
+      });
+
+      expect(numero).toBe('ID-3');
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://test/v1/contrato_general/conteo-numero-contrato',
+        { unidad_ejecutora_id: 6819, vigencia: 7001, estado: 6774 },
+      );
+    });
+
+    it('arma la ruta del conteo con la base que termina en /v1, sin barra final', async () => {
+      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));
+      (service as any).configService.get = () => 'http://test/v1';
+
+      await service.generarConsecutivo({ unidad_ejecutora_id: '6818' });
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://test/v1/contrato_general/conteo-consecutivo',
+        { unidad_ejecutora_id: 6818 },
+      );
+    });
+
+    it('generarConsecutivo reenvía vigencia_id como entero cuando viene', async () => {
+      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));
+
+      await service.generarConsecutivo({
+        unidad_ejecutora_id: '6818',
+        vigencia_id: '9001',
+      });
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://test/v1/contrato_general/conteo-consecutivo',
+        { unidad_ejecutora_id: 6818, vigencia_id: 9001 },
+      );
+    });
+
+    it('generarNumeroContrato cuenta por vigencia_id cuando viene', async () => {
+      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(2));
+
+      await service.generarNumeroContrato({
+        unidad_ejecutora_id: 6819,
+        vigencia_id: 9001,
+        estado: 6774,
+      });
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://test/v1/contrato_general/conteo-numero-contrato',
+        { unidad_ejecutora_id: 6819, vigencia: 9001, vigencia_id: 9001, estado: 6774 },
+      );
+    });
+
+    it.each(['abc', '2026.5', 0, -1])(
+      'rechaza vigencia_id %p sin llamar al CRUD',
+      async (vigencia_id) => {
+        mockedAxios.post = jest.fn();
+
+        await expect(
+          service.generarConsecutivo({ unidad_ejecutora_id: 6818, vigencia_id }),
+        ).rejects.toThrow('El campo vigencia_id debe ser un entero');
+        await expect(
+          service.generarNumeroContrato({ unidad_ejecutora_id: 6818, vigencia_id, estado: 6774 }),
+        ).rejects.toThrow('El campo vigencia_id debe ser un entero');
+        expect(mockedAxios.post).not.toHaveBeenCalled();
+      },
+    );
+
+    it('generarNumeroContrato sigue exigiendo la vigencia', async () => {
+      mockedAxios.post = jest.fn();
+
+      await expect(
+        service.generarNumeroContrato({
+          unidad_ejecutora_id: 6818,
+          vigencia: '',
+          estado: 6774,
+        }),
+      ).rejects.toThrow('El campo vigencia es requerido');
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+    });
+
+    it('generarConsecutivo falla cuando el CRUD responde 400', async () => {
+      mockedAxios.post = jest.fn().mockRejectedValue(new Error('400'));
+
+      await expect(
+        service.generarConsecutivo({ unidad_ejecutora_id: 6818 }),
+      ).rejects.toThrow('Error al obtener el conteo de los contratos');
     });
   });
 
