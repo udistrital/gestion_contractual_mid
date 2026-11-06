@@ -109,9 +109,9 @@ describe('AmparosContratosService', () => {
         amparo: null,
       },
     ]);
-    expect(amparosGetMock).toHaveBeenCalledWith('amparos-polizas', {
+    expect(amparosGetMock).toHaveBeenCalledWith('amparo_poliza', {
       params: {
-        query: JSON.stringify({ contrato_general_id: 10, activo: true }),
+        query: 'contrato_general_id.id:10,activo:true',
         limit: 0,
       },
     });

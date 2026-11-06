@@ -21,8 +21,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PolizasService } from './polizas.service';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
-const RUTA_CRUD = 'amparos-polizas';
+const RUTA_CRUD = RECURSOS_CRUD.amparoPoliza;
+// El CRUD Beego v2 no registra en lote: se conserva la ruta hasta definir ese caso.
+const RUTA_LOTE_CRUD = 'amparos-polizas';
 
 @ApiTags('amparos-polizas')
 @Controller('amparos-polizas')
@@ -92,7 +95,7 @@ export class AmparosPolizasController {
   async crear(@Body() body: any) {
     try {
       const { body: respuesta } = await this.polizasService.crear(
-        RUTA_CRUD,
+        RUTA_LOTE_CRUD,
         body,
       );
       return respuesta;

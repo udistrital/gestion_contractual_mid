@@ -20,8 +20,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PolizasService } from './polizas.service';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
-const RUTA_CRUD = 'polizas';
+const RUTA_CRUD = RECURSOS_CRUD.poliza;
 
 @ApiTags('polizas')
 @Controller('polizas')

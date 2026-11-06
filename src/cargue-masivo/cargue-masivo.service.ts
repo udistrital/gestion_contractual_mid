@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { aCuerpoBeego } from '../utils/query-beego.utils';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
 @Injectable()
 export class CargueMasivoService {
@@ -9,8 +11,8 @@ export class CargueMasivoService {
     return {
       base64data: base64data,
       service: this.configService.get<string>('GESTION_CONTRACTUAL_CRUD_SERVICE'),
-      endpoint: 'especificaciones-tecnicas',
-      complement: complement,
+      endpoint: RECURSOS_CRUD.especificacionTecnica,
+      complement: aCuerpoBeego(complement),
       structure: {
         descripcion: {
           file_name_column: 'Descripción',
