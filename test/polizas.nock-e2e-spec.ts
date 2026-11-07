@@ -175,19 +175,30 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
         { contrato_general_id: 10, amparo_id: 6602 },
         { contrato_general_id: 10, amparo_id: 0 },
       ];
-      const body = {
-        Success: true,
-        Status: 206,
-        Data: { creados: [{ id: 1 }], errores: [{ indice: 1 }] },
-      };
-      nock(CRUD).post('/amparos-polizas', amparos).reply(206, body);
+      nock(CRUD)
+        .post('/amparos-polizas', {
+          contrato_general_id: { id: 10 },
+          amparo_id: 6602,
+        })
+        .reply(201, { Status: '201', Data: { id: 1 } });
+      nock(CRUD)
+        .post('/amparos-polizas', { contrato_general_id: { id: 10 }, amparo_id: 0 })
+        .reply(400, { Status: '400', Message: 'amparo_id es obligatorio' });
 
       const res = await request(app.getHttpServer())
         .post('/amparos-polizas')
         .send(amparos)
         .expect(201);
 
-      expect(res.body).toEqual(body);
+      expect(res.body).toEqual({
+        Success: true,
+        Status: 206,
+        Message: 'Algunos amparos no pudieron ser creados',
+        Data: {
+          creados: [{ id: 1 }],
+          errores: [{ amparo: amparos[1], error: 'amparo_id es obligatorio' }],
+        },
+      });
     });
 
     it('PUT 200: vincula el amparo a la póliza', async () => {

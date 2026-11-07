@@ -52,6 +52,61 @@ export class PolizasService {
     });
   }
 
+  // El CRUD Beego registra de a uno. Se conserva la respuesta del CRUD anterior:
+  // Status 201 con los creados, o Status 206 con { creados, errores } si falla una parte.
+  async crearAmparos(ruta: string, amparos: any): Promise<RespuestaCrud> {
+    if (!Array.isArray(amparos)) {
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.BAD_REQUEST,
+          Message: 'El cuerpo debe ser un arreglo de amparos',
+          Data: null,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const creados: unknown[] = [];
+    const errores: { amparo: unknown; error: string }[] = [];
+    for (const amparo of amparos) {
+      try {
+        const { body } = await this.crear(ruta, amparo);
+        creados.push(body.Data);
+      } catch (error) {
+        errores.push({ amparo, error: this.mensajeDeError(error) });
+      }
+    }
+
+    if (errores.length > 0) {
+      return {
+        status: HttpStatus.PARTIAL_CONTENT,
+        body: {
+          Success: true,
+          Status: HttpStatus.PARTIAL_CONTENT,
+          Message: 'Algunos amparos no pudieron ser creados',
+          Data: { creados, errores },
+        },
+      };
+    }
+
+    return {
+      status: HttpStatus.CREATED,
+      body: {
+        Success: true,
+        Status: HttpStatus.CREATED,
+        Message: 'Amparos creados',
+        Data: creados,
+        Metadata: { total: creados.length },
+      },
+    };
+  }
+
+  private mensajeDeError(error: unknown): string {
+    const respuesta = error instanceof HttpException ? error.getResponse() : null;
+    return (respuesta as any)?.Message ?? (error as Error)?.message ?? String(error);
+  }
+
   actualizar(ruta: string, id: number, body: any): Promise<RespuestaCrud> {
     return this.reenviar({
       method: 'PUT',

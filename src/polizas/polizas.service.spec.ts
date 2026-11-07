@@ -145,6 +145,71 @@ describe('PolizasService', () => {
     });
   });
 
+  describe('crearAmparos', () => {
+    const amparos = [
+      { contrato_general_id: 10, amparo_id: 6602 },
+      { contrato_general_id: 10, amparo_id: 6605 },
+    ];
+
+    it('registra uno por uno y responde 201 con los creados', async () => {
+      requestMock
+        .mockResolvedValueOnce({ status: 201, data: { Status: '201', Data: { id: 1 } } })
+        .mockResolvedValueOnce({ status: 201, data: { Status: '201', Data: { id: 2 } } });
+
+      const resultado = await service.crearAmparos('amparos-polizas', amparos);
+
+      expect(requestMock).toHaveBeenCalledTimes(2);
+      expect(requestMock.mock.calls[0][0]).toEqual({
+        method: 'POST',
+        url: 'amparos-polizas',
+        data: { contrato_general_id: { id: 10 }, amparo_id: 6602 },
+      });
+      expect(resultado).toEqual({
+        status: 201,
+        body: {
+          Success: true,
+          Status: 201,
+          Message: 'Amparos creados',
+          Data: [{ id: 1 }, { id: 2 }],
+          Metadata: { total: 2 },
+        },
+      });
+    });
+
+    it('si falla una parte sigue con los demás y responde 206', async () => {
+      const error = Object.assign(new Error('400'), {
+        isAxiosError: true,
+        response: { status: 400, data: { Message: 'amparo_id es obligatorio' } },
+      });
+      requestMock
+        .mockRejectedValueOnce(error)
+        .mockResolvedValueOnce({ status: 201, data: { Status: '201', Data: { id: 2 } } });
+
+      const resultado = await service.crearAmparos('amparos-polizas', amparos);
+
+      expect(requestMock).toHaveBeenCalledTimes(2);
+      expect(resultado).toEqual({
+        status: 206,
+        body: {
+          Success: true,
+          Status: 206,
+          Message: 'Algunos amparos no pudieron ser creados',
+          Data: {
+            creados: [{ id: 2 }],
+            errores: [{ amparo: amparos[0], error: 'amparo_id es obligatorio' }],
+          },
+        },
+      });
+    });
+
+    it('rechaza un cuerpo que no sea arreglo sin llamar al CRUD', async () => {
+      await expect(
+        service.crearAmparos('amparos-polizas', { amparo_id: 1 }),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(requestMock).not.toHaveBeenCalled();
+    });
+  });
+
   it('crear: reenvía el body y conserva el status 206 del CRUD', async () => {
     const body = {
       Success: true,

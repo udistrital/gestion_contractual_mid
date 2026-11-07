@@ -24,8 +24,6 @@ import { PolizasService } from './polizas.service';
 import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
 const RUTA_CRUD = RECURSOS_CRUD.amparoPoliza;
-// El CRUD Beego v2 no registra en lote: se conserva la ruta hasta definir ese caso.
-const RUTA_LOTE_CRUD = 'amparos-polizas';
 
 @ApiTags('amparos-polizas')
 @Controller('amparos-polizas')
@@ -80,11 +78,12 @@ export class AmparosPolizasController {
 
   @Post()
   @ApiOperation({
-    summary: 'Crear amparos en lote (reenvía a gestion_contractual_crud)',
+    summary:
+      'Crear amparos en lote (los registra uno por uno en gestion_contractual_crud)',
   })
   @ApiBody({
     description:
-      'Arreglo con el mismo formato que POST /amparos-polizas del CRUD (CrearAmparoPolizaDto[])',
+      'Arreglo de amparos con el formato de POST /amparos-polizas del CRUD',
   })
   @ApiResponse({
     status: 201,
@@ -94,8 +93,8 @@ export class AmparosPolizasController {
   @ApiResponse({ status: 400, description: 'Body inválido (CRUD)' })
   async crear(@Body() body: any) {
     try {
-      const { body: respuesta } = await this.polizasService.crear(
-        RUTA_LOTE_CRUD,
+      const { body: respuesta } = await this.polizasService.crearAmparos(
+        RUTA_CRUD,
         body,
       );
       return respuesta;
