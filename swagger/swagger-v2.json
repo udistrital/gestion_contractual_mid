@@ -1,0 +1,907 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Gestion Contractual API MID",
+    "description": "API",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "API",
+      "description": ""
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_healthCheck",
+        "tags": [
+          "App"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/amparos-contratos/{contratoId}": {
+      "get": {
+        "operationId": "AmparosContratosController_getAmparosByContratoId",
+        "summary": "Obtener amparos por ID de contrato",
+        "tags": [
+          "amparos-contratos"
+        ],
+        "parameters": [
+          {
+            "name": "contratoId",
+            "required": true,
+            "in": "path",
+            "description": "ID del contrato",
+            "type": "number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Amparos encontrados con éxito"
+          },
+          "400": {
+            "description": "contratoId no es un entero"
+          },
+          "404": {
+            "description": "Amparos no encontrados"
+          }
+        }
+      }
+    },
+    "/cargue-masivo/especificaciones-tecnicas": {
+      "post": {
+        "operationId": "CargueMasivoController_cargueMasivo",
+        "tags": [
+          "CargueMasivo"
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/contratos-generales/{id}": {
+      "get": {
+        "operationId": "ContratoGeneralController_consultarInfoContrato",
+        "summary": "Retorna información de contrato-general por ID.",
+        "tags": [
+          "ContratoGeneral"
+        ],
+        "parameters": [
+          {
+            "name": "ids",
+            "required": false,
+            "in": "query",
+            "description": "Mostrar la información con sus respectivos ids",
+            "type": "boolean",
+            "default": false
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del contrato general",
+            "type": "number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna detalle de un contrato-general."
+          },
+          "400": {
+            "description": "Error en la solicitud."
+          }
+        }
+      }
+    },
+    "/contratos-generales": {
+      "get": {
+        "operationId": "ContratoGeneralController_consultarContratos",
+        "summary": "Retorna información de contratos generales con filtros y paginación",
+        "tags": [
+          "ContratoGeneral"
+        ],
+        "parameters": [
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Campo por el cual ordenar",
+            "type": "string"
+          },
+          {
+            "name": "orderBy",
+            "required": false,
+            "in": "query",
+            "description": "Dirección del ordenamiento",
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Número de registros a retornar",
+            "type": "number",
+            "minimum": 0
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Número de registros a saltar",
+            "type": "number",
+            "minimum": 0
+          },
+          {
+            "name": "queryFilter",
+            "required": false,
+            "in": "query",
+            "description": "Filtros aplicados para el crud",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de contratos generales"
+          }
+        }
+      }
+    },
+    "/contratos-generales/consecutivo": {
+      "post": {
+        "operationId": "ContratoGeneralController_generarConsecutivo",
+        "summary": "Generación de consecutivo del contrato",
+        "tags": [
+          "ContratoGeneral"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Consecutivo del contrato generado exitosamente"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/contratos-generales/numero-contrato": {
+      "post": {
+        "operationId": "ContratoGeneralController_generarNumeroContrato",
+        "summary": "Generación de número de contrato",
+        "tags": [
+          "ContratoGeneral"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Número de contrato generado exitosamente"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/contratos-generales/ids/separados": {
+      "get": {
+        "operationId": "ContratoGeneralController_consultarContratosIdSeparados",
+        "summary": "Retorna información de contratos generales manteniendo los IDs originales",
+        "tags": [
+          "ContratoGeneral"
+        ],
+        "parameters": [
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Campo por el cual ordenar",
+            "type": "string"
+          },
+          {
+            "name": "orderBy",
+            "required": false,
+            "in": "query",
+            "description": "Dirección del ordenamiento",
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Número de registros a retornar",
+            "type": "number",
+            "minimum": 0
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Número de registros a saltar",
+            "type": "number",
+            "minimum": 0
+          },
+          {
+            "name": "queryFilter",
+            "required": false,
+            "in": "query",
+            "description": "Filtros aplicados para el crud",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de contratos generales con IDs y valores descriptivos"
+          }
+        }
+      }
+    },
+    "/parametros": {
+      "get": {
+        "operationId": "ParametrosController_obtenerParametrosPorTipo",
+        "summary": "Retorna los parámetros de los tipos indicados por los IDs.",
+        "tags": [
+          "Parametros"
+        ],
+        "parameters": [
+          {
+            "name": "ids",
+            "required": true,
+            "in": "query",
+            "description": "ID del/los tipo(s) de parámetro(s) solicitado(s) separados por coma",
+            "type": "string",
+            "x-example": "137,141"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna los listados de parámetros solicitados."
+          },
+          "400": {
+            "description": "Falta el parámetro ids o contiene valores no numéricos."
+          },
+          "500": {
+            "description": "Error al consultar el servicio de parámetros."
+          }
+        }
+      },
+      "delete": {
+        "operationId": "ParametrosController_limpiarCacheParametros",
+        "summary": "Limpia la memoria caché de los tipos de parámetro.",
+        "tags": [
+          "Parametros"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retorna el estado final de la solicitud."
+          },
+          "500": {
+            "description": "Error al limpiar la caché."
+          }
+        }
+      }
+    },
+    "/espacios-fisicos/sedes": {
+      "get": {
+        "description": "Obtiene todas las sedes activas del sistema",
+        "operationId": "EspaciosFisicosController_obtenerSedes",
+        "summary": "Obtener sedes",
+        "tags": [
+          "Espacios Físicos"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de sedes obtenida exitosamente",
+            "schema": {
+              "allOf": [
+                {
+                  "properties": {
+                    "Success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "Status": {
+                      "type": "number",
+                      "example": 200
+                    },
+                    "Message": {
+                      "type": "string",
+                      "example": "Sedes obtenidas exitosamente"
+                    },
+                    "Data": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "Id": {
+                            "type": "number",
+                            "example": 1
+                          },
+                          "Nombre": {
+                            "type": "string",
+                            "example": "Sede Principal"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "404": {
+            "description": "",
+            "schema": {
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "example": false
+                },
+                "Status": {
+                  "type": "number",
+                  "example": 404
+                },
+                "Message": {
+                  "type": "string",
+                  "example": "No se encontraron sedes activas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/espacios-fisicos/dependencias-sede/{id}": {
+      "get": {
+        "description": "Obtiene todas las dependencias asociadas a una sede específica",
+        "operationId": "EspaciosFisicosController_obtenerDependencias",
+        "summary": "Obtener dependencias por sede",
+        "tags": [
+          "Espacios Físicos"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Identificador de la sede",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de dependencias obtenida exitosamente",
+            "schema": {
+              "allOf": [
+                {
+                  "properties": {
+                    "Success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "Status": {
+                      "type": "number",
+                      "example": 200
+                    },
+                    "Message": {
+                      "type": "string",
+                      "example": "Dependencias obtenidas exitosamente"
+                    },
+                    "Data": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "number",
+                            "example": 1
+                          },
+                          "nombre": {
+                            "type": "string",
+                            "example": "Facultad de Ingeniería"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "404": {
+            "description": "",
+            "schema": {
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "example": false
+                },
+                "Status": {
+                  "type": "number",
+                  "example": 404
+                },
+                "Message": {
+                  "type": "string",
+                  "example": "No se encontraron dependencias"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/estados": {
+      "get": {
+        "operationId": "EstadosController_consultarContratos",
+        "summary": "Retorna información sobre el estado de los contratos",
+        "tags": [
+          "Estados"
+        ],
+        "parameters": [
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "Campo por el cual ordenar",
+            "type": "string"
+          },
+          {
+            "name": "orderBy",
+            "required": false,
+            "in": "query",
+            "description": "Dirección del ordenamiento",
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Número de registros a retornar",
+            "type": "number",
+            "minimum": 0
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Número de registros a saltar",
+            "type": "number",
+            "minimum": 0
+          },
+          {
+            "name": "queryFilter",
+            "required": false,
+            "in": "query",
+            "description": "Filtros aplicados para el crud",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de contratos generales"
+          }
+        }
+      }
+    },
+    "/variables-clausulas": {
+      "get": {
+        "operationId": "VariablesClausulasController_encontrarContratista",
+        "summary": "Consulta las variables del Contrato para las clausulas",
+        "tags": [
+          "VariablesClausulas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "doc",
+            "required": true,
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contrato encontrado exitosamente"
+          },
+          "400": {
+            "description": "Solicitud incorrecta"
+          },
+          "404": {
+            "description": "Contrato no encontrado"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/ordenadores/contrato/{id}": {
+      "get": {
+        "operationId": "OrdenadoresController_consultarInfoOrdenador",
+        "summary": "Retorna información de Supervisor por ID de contrato.",
+        "tags": [
+          "Ordenadores"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del contrato general",
+            "type": "number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna detalle de un supervisor."
+          },
+          "400": {
+            "description": "Error en la solicitud."
+          }
+        }
+      }
+    },
+    "/supervisores/contrato/{id}": {
+      "get": {
+        "operationId": "SupervisoresController_consultarInfoSupervisor",
+        "summary": "Retorna información de Supervisor por ID de contrato.",
+        "tags": [
+          "Supervisores"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del contrato general",
+            "type": "number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna detalle de un supervisor."
+          },
+          "400": {
+            "description": "Error en la solicitud."
+          }
+        }
+      }
+    },
+    "/polizas": {
+      "get": {
+        "operationId": "PolizasController_consultar",
+        "summary": "Consultar pólizas (reenvía a gestion_contractual_crud)",
+        "tags": [
+          "polizas"
+        ],
+        "parameters": [
+          {
+            "name": "include",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "fields",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "orderBy",
+            "required": false,
+            "in": "query",
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "query",
+            "required": false,
+            "in": "query",
+            "description": "Filtro JSON, ej. {\"contrato_general_id\":1,\"activo\":true}",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pólizas encontradas"
+          },
+          "400": {
+            "description": "Parámetros inválidos (CRUD)"
+          }
+        }
+      },
+      "post": {
+        "operationId": "PolizasController_crear",
+        "summary": "Crear póliza (reenvía a gestion_contractual_crud)",
+        "tags": [
+          "polizas"
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Mismo body que POST /polizas del CRUD (CrearPolizaDto)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Póliza creada"
+          },
+          "400": {
+            "description": "Body inválido (CRUD)"
+          },
+          "404": {
+            "description": "Contrato no encontrado (CRUD)"
+          }
+        }
+      }
+    },
+    "/polizas/{id}": {
+      "put": {
+        "operationId": "PolizasController_actualizar",
+        "summary": "Actualizar póliza (reenvía a gestion_contractual_crud)",
+        "tags": [
+          "polizas"
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de la póliza",
+            "type": "number"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Mismo body que PUT /polizas/:id del CRUD (parcial)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Póliza actualizada"
+          },
+          "400": {
+            "description": "id no entero o body inválido"
+          },
+          "404": {
+            "description": "Póliza no encontrada (CRUD)"
+          }
+        }
+      }
+    },
+    "/amparos-polizas": {
+      "get": {
+        "operationId": "AmparosPolizasController_consultar",
+        "summary": "Consultar amparos de pólizas (reenvía a gestion_contractual_crud)",
+        "tags": [
+          "amparos-polizas"
+        ],
+        "parameters": [
+          {
+            "name": "include",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "fields",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "orderBy",
+            "required": false,
+            "in": "query",
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "query",
+            "required": false,
+            "in": "query",
+            "description": "Filtro JSON, ej. {\"contrato_general_id\":1,\"activo\":true}",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Amparos encontrados"
+          },
+          "400": {
+            "description": "Parámetros inválidos (CRUD)"
+          }
+        }
+      },
+      "post": {
+        "operationId": "AmparosPolizasController_crear",
+        "summary": "Crear amparos en lote (reenvía a gestion_contractual_crud)",
+        "tags": [
+          "amparos-polizas"
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Arreglo con el mismo formato que POST /amparos-polizas del CRUD (CrearAmparoPolizaDto[])",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Amparos creados; en creación parcial el body trae Status = 206 y Data = { creados, errores }"
+          },
+          "400": {
+            "description": "Body inválido (CRUD)"
+          }
+        }
+      }
+    },
+    "/amparos-polizas/{id}": {
+      "put": {
+        "operationId": "AmparosPolizasController_actualizar",
+        "summary": "Actualizar amparo o vincularlo a una póliza (reenvía a gestion_contractual_crud)",
+        "tags": [
+          "amparos-polizas"
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del amparo",
+            "type": "number"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Mismo body que PUT /amparos-polizas/:id del CRUD (parcial)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Amparo actualizado"
+          },
+          "400": {
+            "description": "id no entero o body inválido"
+          },
+          "404": {
+            "description": "Amparo no encontrado (CRUD)"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "AmparosPolizasController_eliminar",
+        "summary": "Eliminar amparo, borrado lógico (reenvía a gestion_contractual_crud)",
+        "tags": [
+          "amparos-polizas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del amparo",
+            "type": "number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Amparo eliminado (activo=false)"
+          },
+          "400": {
+            "description": "id no entero"
+          },
+          "404": {
+            "description": "Amparo no encontrado (CRUD)"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {}
+}

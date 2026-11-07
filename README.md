@@ -52,6 +52,19 @@ Nota: En caso de no asignar el puerto en las variables de entorno, se asignará 
 # TODO
 ```
 
+### Swagger 2.0
+La aplicación genera `swagger/swagger.json` en OpenAPI 3.0 al arrancar. Para obtener `swagger/swagger-v2.json` en Swagger 2.0:
+```shell
+# 1. Arrancar el MID una vez para actualizar swagger/swagger.json
+pnpm start
+
+# 2. Convertir a Swagger 2.0
+pnpm swagger:v2
+
+# 3. Validar
+npx @apidevtools/swagger-cli@4.0.4 validate swagger/swagger-v2.json
+```
+
 ### Ejecución Pruebas
 
 Pruebas unitarias
