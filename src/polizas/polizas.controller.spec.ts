@@ -36,7 +36,7 @@ describe('Controladores de pólizas', () => {
 
     const resultado = await polizasController.consultar({ limit: '1' });
 
-    expect(service.consultar).toHaveBeenCalledWith('poliza', { limit: '1' });
+    expect(service.consultar).toHaveBeenCalledWith('polizas', { limit: '1' });
     expect(resultado).toBe(body);
   });
 
@@ -45,7 +45,7 @@ describe('Controladores de pólizas', () => {
 
     const resultado = await polizasController.crear({ a: 1 });
 
-    expect(service.crear).toHaveBeenCalledWith('poliza', { a: 1 });
+    expect(service.crear).toHaveBeenCalledWith('polizas', { a: 1 });
     expect(resultado).toEqual({ Data: { id: 1 } });
   });
 
@@ -54,7 +54,7 @@ describe('Controladores de pólizas', () => {
 
     await polizasController.actualizar(7, { b: 2 });
 
-    expect(service.actualizar).toHaveBeenCalledWith('poliza', 7, { b: 2 });
+    expect(service.actualizar).toHaveBeenCalledWith('polizas', 7, { b: 2 });
   });
 
   it('POST /amparos-polizas devuelve el body de creación parcial del CRUD', async () => {
@@ -76,11 +76,11 @@ describe('Controladores de pólizas', () => {
     await amparosController.actualizar(5, { poliza_id: 1 });
     await amparosController.eliminar(5);
 
-    expect(service.consultar).toHaveBeenCalledWith('amparo_poliza', {});
-    expect(service.actualizar).toHaveBeenCalledWith('amparo_poliza', 5, {
+    expect(service.consultar).toHaveBeenCalledWith('amparos-polizas', {});
+    expect(service.actualizar).toHaveBeenCalledWith('amparos-polizas', 5, {
       poliza_id: 1,
     });
-    expect(service.eliminar).toHaveBeenCalledWith('amparo_poliza', 5);
+    expect(service.eliminar).toHaveBeenCalledWith('amparos-polizas', 5);
   });
 
   it('relanza HttpException del servicio', async () => {
