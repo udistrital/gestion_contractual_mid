@@ -2,6 +2,7 @@
 export const RECURSOS_CRUD = {
   contratoGeneral: 'contratos-generales',
   estadoContrato: 'estados-contrato',
+  ordenador: 'ordenadores',
   poliza: 'polizas',
   amparoPoliza: 'amparos-polizas',
   especificacionTecnica: 'especificaciones-tecnicas',
