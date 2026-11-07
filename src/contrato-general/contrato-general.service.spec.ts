@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -168,7 +169,7 @@ describe('ContratoGeneralService', () => {
   });
 
   describe('getContratoTransformed con el CRUD Beego v2', () => {
-    it('consulta contrato_general y conserva la forma que usan los consumidores', async () => {
+    it('consulta contratos-generales y conserva la forma que usan los consumidores', async () => {
       crudGetMock.mockResolvedValue({
         data: {
           Data: {
@@ -185,7 +186,7 @@ describe('ContratoGeneralService', () => {
 
       const result = await service.getContratoTransformed(1, true);
 
-      expect(crudGetMock).toHaveBeenCalledWith('contrato_general/1');
+      expect(crudGetMock).toHaveBeenCalledWith('contratos-generales/1');
       expect(result).toEqual({
         id: 1,
         tipo_contrato_id: 6540,
@@ -230,33 +231,34 @@ describe('ContratoGeneralService', () => {
       data: { Success: true, Status: '200', Data },
     });
 
-    it('generarConsecutivo llama a la ruta nueva con la unidad como entero', async () => {
+    it('generarConsecutivo llama a la ruta nueva con unidad y vigencia como enteros', async () => {
       mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));
 
       const consecutivo = await service.generarConsecutivo({
         unidad_ejecutora_id: '6818',
+        vigencia_id: '9001',
       });
 
       expect(consecutivo).toBe('5');
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://test/v1/contrato_general/conteo-consecutivo',
-        { unidad_ejecutora_id: 6818 },
+        'http://test/v1/contratos-generales/conteo-consecutivo',
+        { unidad_ejecutora_id: 6818, vigencia_id: 9001 },
       );
     });
 
-    it('generarNumeroContrato envía enteros y arma prefijo + conteo + 1', async () => {
+    it('generarNumeroContrato envía solo vigencia_id y arma prefijo + conteo + 1', async () => {
       mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(2));
 
       const numero = await service.generarNumeroContrato({
         unidad_ejecutora_id: '6819',
-        vigencia: '7001',
+        vigencia_id: '9001',
         estado: '6774',
       });
 
       expect(numero).toBe('ID-3');
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://test/v1/contrato_general/conteo-numero-contrato',
-        { unidad_ejecutora_id: 6819, vigencia: 7001, estado: 6774 },
+        'http://test/v1/contratos-generales/conteo-numero-contrato',
+        { unidad_ejecutora_id: 6819, vigencia_id: 9001, estado: 6774 },
       );
     });
 
@@ -264,76 +266,41 @@ describe('ContratoGeneralService', () => {
       mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));
       (service as any).configService.get = () => 'http://test/v1';
 
-      await service.generarConsecutivo({ unidad_ejecutora_id: '6818' });
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://test/v1/contrato_general/conteo-consecutivo',
-        { unidad_ejecutora_id: 6818 },
-      );
-    });
-
-    it('generarConsecutivo reenvía vigencia_id como entero cuando viene', async () => {
-      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));
-
       await service.generarConsecutivo({
         unidad_ejecutora_id: '6818',
-        vigencia_id: '9001',
+        vigencia_id: 9001,
       });
 
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://test/v1/contrato_general/conteo-consecutivo',
+        'http://test/v1/contratos-generales/conteo-consecutivo',
         { unidad_ejecutora_id: 6818, vigencia_id: 9001 },
       );
     });
 
-    it('generarNumeroContrato cuenta por vigencia_id cuando viene', async () => {
-      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(2));
-
-      await service.generarNumeroContrato({
-        unidad_ejecutora_id: 6819,
-        vigencia_id: 9001,
-        estado: 6774,
-      });
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://test/v1/contrato_general/conteo-numero-contrato',
-        { unidad_ejecutora_id: 6819, vigencia: 9001, vigencia_id: 9001, estado: 6774 },
-      );
-    });
-
-    it.each(['abc', '2026.5', 0, -1])(
-      'rechaza vigencia_id %p sin llamar al CRUD',
+    it.each([undefined, null, '', 'abc', '2026.5', 0, -1])(
+      'responde 400 con vigencia_id %p sin llamar al CRUD',
       async (vigencia_id) => {
         mockedAxios.post = jest.fn();
 
         await expect(
           service.generarConsecutivo({ unidad_ejecutora_id: 6818, vigencia_id }),
-        ).rejects.toThrow('El campo vigencia_id debe ser un entero');
+        ).rejects.toBeInstanceOf(BadRequestException);
         await expect(
-          service.generarNumeroContrato({ unidad_ejecutora_id: 6818, vigencia_id, estado: 6774 }),
-        ).rejects.toThrow('El campo vigencia_id debe ser un entero');
+          service.generarNumeroContrato({
+            unidad_ejecutora_id: 6818,
+            vigencia_id,
+            estado: 6774,
+          }),
+        ).rejects.toBeInstanceOf(BadRequestException);
         expect(mockedAxios.post).not.toHaveBeenCalled();
       },
     );
-
-    it('generarNumeroContrato sigue exigiendo la vigencia', async () => {
-      mockedAxios.post = jest.fn();
-
-      await expect(
-        service.generarNumeroContrato({
-          unidad_ejecutora_id: 6818,
-          vigencia: '',
-          estado: 6774,
-        }),
-      ).rejects.toThrow('El campo vigencia es requerido');
-      expect(mockedAxios.post).not.toHaveBeenCalled();
-    });
 
     it('generarConsecutivo falla cuando el CRUD responde 400', async () => {
       mockedAxios.post = jest.fn().mockRejectedValue(new Error('400'));
 
       await expect(
-        service.generarConsecutivo({ unidad_ejecutora_id: 6818 }),
+        service.generarConsecutivo({ unidad_ejecutora_id: 6818, vigencia_id: 9001 }),
       ).rejects.toThrow('Error al obtener el conteo de los contratos');
     });
   });

@@ -74,7 +74,7 @@ describe('EstadosController (e2e, CRUD simulados)', () => {
         respuestaParametros(parametrosPorTipo[tipo] ?? [{}]),
       );
     });
-    crud.en('/v1/estado_contrato/', (_peticion, _req, res) =>
+    crud.en('/v1/estados-contrato/', (_peticion, _req, res) =>
       responderJson(res, 200, {
         Data: estadosCrud,
         Metadata: { total: 3, limit: 10, offset: 0 },
@@ -152,7 +152,7 @@ describe('EstadosController (e2e, CRUD simulados)', () => {
 
     await request(app.getHttpServer()).get('/estados').expect(200);
     expect(crud.llamadas('/parametro')).toHaveLength(2);
-    expect(crud.llamadas('/v1/estado_contrato/')).toHaveLength(2);
+    expect(crud.llamadas('/v1/estados-contrato/')).toHaveLength(2);
   });
 
   it('reenvía los filtros y la paginación a gestion_contractual_crud', async () => {
@@ -167,7 +167,7 @@ describe('EstadosController (e2e, CRUD simulados)', () => {
       })
       .expect(200);
 
-    expect(crud.llamadas('/v1/estado_contrato/')[0].query).toEqual({
+    expect(crud.llamadas('/v1/estados-contrato/')[0].query).toEqual({
       limit: '5',
       offset: '10',
       sortby: 'id',
