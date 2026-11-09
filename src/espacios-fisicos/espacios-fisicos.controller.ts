@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import { EspaciosFisicosService } from './espacios-fisicos.service';
 import { Observable, map, catchError } from 'rxjs';
 
 import {
+  DependenciaConSedes,
   DependenciaSimple,
   SedeResponse,
   StandardResponse,
@@ -84,6 +86,78 @@ export class EspaciosFisicosController {
           Success: false,
           Status: error.status || HttpStatus.INTERNAL_SERVER_ERROR,
           Message: error.message || 'Error al obtener las sedes',
+        };
+        throw new HttpException(response, response.Status);
+      }),
+    );
+  }
+
+  @Get('/dependencias/:id')
+  @ApiOperation({
+    summary: 'Obtener una dependencia',
+    description:
+      'Nombre de la dependencia y sedes a las que está asignada en Oikos. Sirve para precargar la sede a partir de la dependencia guardada en el contrato',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identificador de la dependencia',
+    required: true,
+    type: Number,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dependencia obtenida exitosamente',
+    schema: {
+      properties: {
+        Success: { type: 'boolean', example: true },
+        Status: { type: 'number', example: 200 },
+        Message: { type: 'string', example: 'Dependencia 20 obtenida exitosamente' },
+        Data: {
+          properties: {
+            id: { type: 'number', example: 20 },
+            nombre: { type: 'string', example: 'Facultad de Ingeniería' },
+            sedes: {
+              type: 'array',
+              items: {
+                properties: {
+                  id: { type: 'number', example: 10 },
+                  nombre: { type: 'string', example: 'Sede Calle 40' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'El id no es un número' })
+  @ApiNotFoundResponse({
+    schema: {
+      properties: {
+        Success: { type: 'boolean', example: false },
+        Status: { type: 'number', example: 404 },
+        Message: { type: 'string', example: 'No se encontró la dependencia con ID 20' },
+      },
+    },
+  })
+  @ApiResponse({ status: 500, description: 'Error al consultar Oikos' })
+  obtenerDependencia(
+    @Param('id', ParseIntPipe) id: number,
+  ): Observable<StandardResponse<DependenciaConSedes>> {
+    return this.espaciosFisicosService.obtenerDependenciaPorId(String(id)).pipe(
+      map(
+        (data): StandardResponse<DependenciaConSedes> => ({
+          Success: true,
+          Status: HttpStatus.OK,
+          Message: `Dependencia ${id} obtenida exitosamente`,
+          Data: data,
+        }),
+      ),
+      catchError((error) => {
+        const response: StandardResponse<DependenciaConSedes> = {
+          Success: false,
+          Status: error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: error.message || `Error al obtener la dependencia ${id}`,
         };
         throw new HttpException(response, response.Status);
       }),
