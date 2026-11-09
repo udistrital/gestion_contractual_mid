@@ -46,6 +46,54 @@
         ]
       }
     },
+    "/parametros": {
+      "get": {
+        "operationId": "ParametrosController_obtenerParametrosPorTipo",
+        "parameters": [
+          {
+            "name": "ids",
+            "required": true,
+            "in": "query",
+            "description": "ID del/los tipo(s) de parámetro(s) solicitado(s) separados por coma",
+            "schema": {
+              "example": "137,141",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna los listados de parámetros solicitados."
+          },
+          "400": {
+            "description": "Falta el parámetro ids o contiene valores no numéricos."
+          },
+          "500": {
+            "description": "Error al consultar el servicio de parámetros."
+          }
+        },
+        "summary": "Retorna los parámetros de los tipos indicados por los IDs.",
+        "tags": [
+          "Parametros"
+        ]
+      },
+      "delete": {
+        "operationId": "ParametrosController_limpiarCacheParametros",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retorna el estado final de la solicitud."
+          },
+          "500": {
+            "description": "Error al limpiar la caché."
+          }
+        },
+        "summary": "Limpia la memoria caché de los tipos de parámetro.",
+        "tags": [
+          "Parametros"
+        ]
+      }
+    },
     "/cargue-masivo/especificaciones-tecnicas": {
       "post": {
         "operationId": "CargueMasivoController_cargueMasivo",
@@ -185,6 +233,7 @@
     },
     "/contratos-generales/numero-contrato": {
       "post": {
+        "deprecated": true,
         "operationId": "ContratoGeneralController_generarNumeroContrato",
         "parameters": [],
         "responses": {
@@ -195,7 +244,49 @@
             "description": "Error interno del servidor"
           }
         },
-        "summary": "Generación de número de contrato",
+        "summary": "Generación de número de contrato (obsoleto: usar POST /contratos-generales/{id}/estados)",
+        "tags": [
+          "ContratoGeneral"
+        ]
+      }
+    },
+    "/contratos-generales/{id}/estados": {
+      "post": {
+        "operationId": "ContratoGeneralController_registrarEstado",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Id del contrato general",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarEstadoContratoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Estado registrado; Data = { estado, numero_contrato }"
+          },
+          "400": {
+            "description": "Cuerpo inválido, contrato sin vigencia o unidad sin prefijo"
+          },
+          "404": {
+            "description": "Contrato no encontrado"
+          },
+          "409": {
+            "description": "El número chocó dos veces con otro contrato"
+          }
+        },
+        "summary": "Registra un estado del contrato; al pasar a SUSCRITO asigna el número de contrato",
         "tags": [
           "ContratoGeneral"
         ]
@@ -265,54 +356,6 @@
         "summary": "Retorna información de contratos generales manteniendo los IDs originales",
         "tags": [
           "ContratoGeneral"
-        ]
-      }
-    },
-    "/parametros": {
-      "get": {
-        "operationId": "ParametrosController_obtenerParametrosPorTipo",
-        "parameters": [
-          {
-            "name": "ids",
-            "required": true,
-            "in": "query",
-            "description": "ID del/los tipo(s) de parámetro(s) solicitado(s) separados por coma",
-            "schema": {
-              "example": "137,141",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Retorna los listados de parámetros solicitados."
-          },
-          "400": {
-            "description": "Falta el parámetro ids o contiene valores no numéricos."
-          },
-          "500": {
-            "description": "Error al consultar el servicio de parámetros."
-          }
-        },
-        "summary": "Retorna los parámetros de los tipos indicados por los IDs.",
-        "tags": [
-          "Parametros"
-        ]
-      },
-      "delete": {
-        "operationId": "ParametrosController_limpiarCacheParametros",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Retorna el estado final de la solicitud."
-          },
-          "500": {
-            "description": "Error al limpiar la caché."
-          }
-        },
-        "summary": "Limpia la memoria caché de los tipos de parámetro.",
-        "tags": [
-          "Parametros"
         ]
       }
     },
@@ -967,6 +1010,37 @@
   ],
   "servers": [],
   "components": {
-    "schemas": {}
+    "schemas": {
+      "RegistrarEstadoContratoDto": {
+        "type": "object",
+        "properties": {
+          "estado_parametro_id": {
+            "type": "number",
+            "example": 6774
+          },
+          "estado_interno_parametro_id": {
+            "type": "number",
+            "example": 6802
+          },
+          "usuario_id": {
+            "type": "number",
+            "example": 7
+          },
+          "usuario_rol": {
+            "type": "string",
+            "example": "JEFE_CONTRATACION_RECTOR"
+          },
+          "motivo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "estado_parametro_id",
+          "estado_interno_parametro_id",
+          "usuario_id",
+          "usuario_rol"
+        ]
+      }
+    }
   }
 }
