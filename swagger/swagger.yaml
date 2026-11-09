@@ -287,6 +287,41 @@ paths:
       summary: Obtener sedes
       tags: &ref_2
         - Espacios Físicos
+  /espacios-fisicos/dependencias:
+    get:
+      description: Dependencias activas de Oikos ordenadas por nombre, sin filtrar por sede
+      operationId: EspaciosFisicosController_obtenerTodasLasDependencias
+      parameters: []
+      responses:
+        '200':
+          description: Lista de dependencias obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                properties:
+                  Success:
+                    type: boolean
+                    example: true
+                  Status:
+                    type: number
+                    example: 200
+                  Message:
+                    type: string
+                    example: Dependencias obtenidas exitosamente
+                  Data:
+                    type: array
+                    items:
+                      properties:
+                        id:
+                          type: number
+                          example: 20
+                        nombre:
+                          type: string
+                          example: Facultad de Ingeniería
+        '500':
+          description: Error al consultar Oikos
+      summary: Obtener todas las dependencias
+      tags: *ref_2
   /espacios-fisicos/dependencias/{id}:
     get:
       description: >-
