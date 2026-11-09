@@ -9,6 +9,8 @@ import axios, { AxiosInstance } from 'axios';
 import { EspaciosFisicosService } from '../espacios-fisicos/espacios-fisicos.service';
 import { firstValueFrom } from 'rxjs';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
+import { aQueryBeego } from '../utils/query-beego.utils';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
 interface SupervisorResponse {
   Status: string;
@@ -24,8 +26,8 @@ interface SupervisorCURD {
   cargo_id: number;
   documento: number;
   digito_verificacion: number;
-  sede_id: number;
-  dependencia_id: number;
+  // El CRUD v2 no guarda la sede (crud#51 3a1e5ab) y la dependencia es opcional.
+  dependencia_id: number | null;
   activo: boolean;
   fecha_creacion: string;
   fecha_modificacion: string;
@@ -75,7 +77,16 @@ export class SupervisoresService {
     try {
       const response = await fetchWithRetry(() =>
         this.axiosInstance.get<SupervisorResponse>(
-          `supervisores/contrato/${id}`,
+          `${RECURSOS_CRUD.supervisor}/`,
+          {
+            params: {
+              ...aQueryBeego(
+                { contrato_general_id: id, activo: true },
+                { sortBy: 'id', orderBy: 'asc' },
+              ),
+              limit: '0',
+            },
+          },
         ),
       );
 
@@ -120,26 +131,26 @@ export class SupervisoresService {
               return null;
             }
 
-            const [sedeResponse, dependenciaResponse] = await Promise.all([
-              firstValueFrom(
-                this.espaciosFisicosService.obtenerSedePorId(
-                  supervisorBase.sede_id.toString(),
-                ),
-              ),
-              firstValueFrom(
-                this.espaciosFisicosService.obtenerDependenciaPorId(
-                  supervisorBase.dependencia_id.toString(),
-                ),
-              ),
-            ]);
+            // La sede sale de la dependencia en Oikos si tiene una sola; si no, del legado.
+            const dependencia = supervisorBase.dependencia_id
+              ? await firstValueFrom(
+                  this.espaciosFisicosService.obtenerDependenciaPorId(
+                    String(supervisorBase.dependencia_id),
+                  ),
+                ).catch(() => null)
+              : null;
+            const sedeUnica =
+              dependencia?.sedes.length === 1 ? dependencia.sedes[0].nombre : '';
 
             return {
               ...supervisorBase,
               cargo_supervisor: supervisorDetalle.cargo,
               nombre_supervisor: supervisorDetalle.nombre,
-              sede: sedeResponse?.[0]?.Nombre || 'Sede no encontrada',
+              sede: sedeUnica || supervisorBase.sede_legado || 'Sede no encontrada',
               dependencia:
-                dependenciaResponse.nombre || 'Dependencia no encontrada',
+                dependencia?.nombre ||
+                supervisorBase.dependencia_legado ||
+                'Dependencia no encontrada',
             };
           } catch (error: any) {
             this.logger.error(
@@ -162,6 +173,10 @@ export class SupervisoresService {
 
       return supervisoresValidos;
     } catch (error: any) {
+      // El 404 de un contrato sin supervisores no se convierte en 500.
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 404) {
           throw new NotFoundException(
