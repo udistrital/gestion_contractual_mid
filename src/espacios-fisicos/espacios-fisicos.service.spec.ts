@@ -112,3 +112,62 @@ describe('EspaciosFisicosService.obtenerDependenciaPorId', () => {
     expect(error.message).toContain('Error en la comunicación con el servicio');
   });
 });
+
+describe('EspaciosFisicosService.obtenerTodasLasDependencias', () => {
+  let service: EspaciosFisicosService;
+  let http: { get: jest.Mock };
+
+  beforeEach(async () => {
+    http = { get: jest.fn() };
+    const modulo = await Test.createTestingModule({
+      providers: [
+        EspaciosFisicosService,
+        { provide: HttpService, useValue: http },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: (llave: string) =>
+              llave === 'oikos.espaciosFisicosEndpoint' ? OIKOS : 38,
+          },
+        },
+      ],
+    }).compile();
+    service = modulo.get(EspaciosFisicosService);
+  });
+
+  it('solo activas, en {id, nombre} y ordenadas por nombre', async () => {
+    http.get.mockReturnValue(
+      of({
+        data: [
+          { Id: 21, Nombre: 'Oficina Asesora Jurídica' },
+          { Id: 20, Nombre: 'Facultad de Ingeniería' },
+        ],
+      }),
+    );
+    await expect(
+      firstValueFrom(service.obtenerTodasLasDependencias()),
+    ).resolves.toEqual([
+      { id: 20, nombre: 'Facultad de Ingeniería' },
+      { id: 21, nombre: 'Oficina Asesora Jurídica' },
+    ]);
+    const url = decodeURIComponent(http.get.mock.calls[0][0]);
+    expect(url).toContain(`${OIKOS}dependencia?`);
+    expect(url).toContain('query=Activo:true');
+    expect(url).toContain('limit=0');
+  });
+
+  it('sin resultados ([{}] de Oikos): lista vacía', async () => {
+    http.get.mockReturnValue(of({ data: [{}] }));
+    await expect(
+      firstValueFrom(service.obtenerTodasLasDependencias()),
+    ).resolves.toEqual([]);
+  });
+
+  it('Oikos caído: error claro', async () => {
+    http.get.mockReturnValue(throwError(() => errorAxios(503)));
+    const error = await firstValueFrom(
+      service.obtenerTodasLasDependencias(),
+    ).catch((e) => e);
+    expect(error).toBeInstanceOf(InternalServerErrorException);
+  });
+});

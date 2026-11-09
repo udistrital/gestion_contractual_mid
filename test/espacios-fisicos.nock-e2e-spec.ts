@@ -92,6 +92,42 @@ describe('Espacios físicos y supervisores (e2e con nock)', () => {
     nock.enableNetConnect();
   });
 
+  describe('GET /espacios-fisicos/dependencias', () => {
+    const oikosLista = (status: number, cuerpo: unknown) =>
+      nock(OIKOS)
+        .get('/dependencia')
+        .query({
+          query: 'Activo:true',
+          fields: 'Id,Nombre',
+          sortby: 'nombre',
+          order: 'asc',
+          limit: '0',
+        })
+        .reply(status, cuerpo);
+
+    it('200: todas las dependencias activas, ordenadas por nombre', async () => {
+      oikosLista(200, [
+        { Id: 21, Nombre: 'Oficina Asesora Jurídica' },
+        { Id: 20, Nombre: 'Facultad de Ingeniería' },
+      ]);
+      const res = await request(app.getHttpServer())
+        .get('/espacios-fisicos/dependencias')
+        .expect(200);
+      expect(res.body.Data).toEqual([
+        { id: 20, nombre: 'Facultad de Ingeniería' },
+        { id: 21, nombre: 'Oficina Asesora Jurídica' },
+      ]);
+    });
+
+    it('500: Oikos caído', async () => {
+      oikosLista(503, {});
+      const res = await request(app.getHttpServer())
+        .get('/espacios-fisicos/dependencias')
+        .expect(500);
+      expect(res.body.Success).toBe(false);
+    });
+  });
+
   describe('GET /espacios-fisicos/dependencias/{id}', () => {
     it('200: dependencia con una sede', async () => {
       const oikos = [oikosDependencia(20, [asignacion(10)]), oikosSedes()];
@@ -253,6 +289,42 @@ describe('Espacios físicos y supervisores (e2e con nock)', () => {
         .get('/supervisores/contrato/42')
         .expect(404);
       expect(res.body.message).toContain('contrato 42');
+    });
+
+    it('sin dependencia_legado (el MF ya no lo escribe): busca la franja por el nombre en Oikos', async () => {
+      crudSupervisores([
+        supervisor({ dependencia_legado: '', sede_legado: '' }),
+      ]);
+      nock(SUPERVISORES_MID)
+        .get('/supervisores/documento')
+        .query({ documento: '1000000005' })
+        .reply(200, {
+          Status: '200',
+          Data: [
+            {
+              dependencia_supervisor: 'Otra dependencia',
+              cargo: 'Jefe',
+              nombre: 'OTRA FRANJA',
+            },
+            {
+              dependencia_supervisor: 'Facultad de Ingeniería',
+              cargo: 'Decano',
+              nombre: 'SUPERVISOR DE PRUEBA',
+            },
+          ],
+        });
+      oikosDependencia(20, [asignacion(10)]);
+      oikosSedes();
+      const res = await request(app.getHttpServer())
+        .get('/supervisores/contrato/42')
+        .expect(200);
+      expect(res.body.Data[0]).toEqual(
+        expect.objectContaining({
+          nombre_supervisor: 'SUPERVISOR DE PRUEBA',
+          sede: 'Sede Calle 40',
+          dependencia: 'Facultad de Ingeniería',
+        }),
+      );
     });
 
     it('si Oikos falla, responde con los nombres del legado', async () => {
