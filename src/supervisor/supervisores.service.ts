@@ -118,11 +118,31 @@ export class SupervisoresService {
               return null;
             }
 
-            const supervisorDetalle = supervisorDetalleResponse.data.Data.find(
-              (franja) =>
-                franja.dependencia_supervisor ===
-                supervisorBase.dependencia_legado,
-            );
+            // La dependencia de Oikos da el nombre y, si tiene una sola sede, la sede.
+            const dependencia = supervisorBase.dependencia_id
+              ? await firstValueFrom(
+                  this.espaciosFisicosService.obtenerDependenciaPorId(
+                    String(supervisorBase.dependencia_id),
+                  ),
+                ).catch(() => null)
+              : null;
+
+            // El MF ya no escribe dependencia_legado: la franja se busca por el legado,
+            // luego por el nombre en Oikos y, si el supervisor tiene una sola, esa.
+            const franjas = supervisorDetalleResponse.data.Data;
+            const supervisorDetalle =
+              franjas.find(
+                (franja) =>
+                  !!supervisorBase.dependencia_legado &&
+                  franja.dependencia_supervisor ===
+                    supervisorBase.dependencia_legado,
+              ) ??
+              franjas.find(
+                (franja) =>
+                  !!dependencia?.nombre &&
+                  franja.dependencia_supervisor === dependencia.nombre,
+              ) ??
+              (franjas.length === 1 ? franjas[0] : undefined);
 
             if (!supervisorDetalle) {
               this.logger.warn(
@@ -132,13 +152,6 @@ export class SupervisoresService {
             }
 
             // La sede sale de la dependencia en Oikos si tiene una sola; si no, del legado.
-            const dependencia = supervisorBase.dependencia_id
-              ? await firstValueFrom(
-                  this.espaciosFisicosService.obtenerDependenciaPorId(
-                    String(supervisorBase.dependencia_id),
-                  ),
-                ).catch(() => null)
-              : null;
             const sedeUnica =
               dependencia?.sedes.length === 1 ? dependencia.sedes[0].nombre : '';
 
