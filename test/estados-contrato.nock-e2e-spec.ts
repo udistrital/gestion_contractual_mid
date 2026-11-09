@@ -16,7 +16,12 @@ const cambio = {
   usuario_id: 7,
   usuario_rol: 'JEFE_CONTRATACION_RECTOR',
 };
-const contrato = { id: 42, unidad_ejecutora_id: 6818, vigencia_id: 9001, numero_contrato: null };
+const contrato = {
+  id: 42,
+  unidad_ejecutora_id: 6818,
+  vigencia_id: 9001,
+  numero_contrato: null,
+};
 
 describe('POST /contratos-generales/{id}/estados (e2e con nock)', () => {
   let app: INestApplication;
@@ -32,7 +37,12 @@ describe('POST /contratos-generales/{id}/estados (e2e con nock)', () => {
         ConfigModule.forRoot({
           isGlobal: true,
           ignoreEnvFile: true,
-          load: [() => ({ GESTION_CONTRACTUAL_CRUD_SERVICE: CRUD, PARAMETROS_CRUD_SERVICE: 'http://parametros.test/v1/' })],
+          load: [
+            () => ({
+              GESTION_CONTRACTUAL_CRUD_SERVICE: CRUD,
+              PARAMETROS_CRUD_SERVICE: 'http://parametros.test/v1/',
+            }),
+          ],
         }),
         CacheModule.register({ isGlobal: true }),
         ContratoGeneralModule,
@@ -52,7 +62,9 @@ describe('POST /contratos-generales/{id}/estados (e2e con nock)', () => {
   });
 
   it('400: el cuerpo no puede traer numero_contrato y no llama al CRUD', async () => {
-    const crud = nock(CRUD).get('/contratos-generales/42').reply(200, { Data: contrato });
+    const crud = nock(CRUD)
+      .get('/contratos-generales/42')
+      .reply(200, { Data: contrato });
 
     const res = await request(app.getHttpServer())
       .post('/contratos-generales/42/estados')
@@ -75,10 +87,20 @@ describe('POST /contratos-generales/{id}/estados (e2e con nock)', () => {
       .times(2)
       .reply(200, { Success: true, Status: '200', Data: 4 })
       .put('/contratos-generales/42', { numero_contrato: '5' })
-      .reply(409, { Success: false, Status: '409', Message: 'numero_contrato repetido' })
+      .reply(409, {
+        Success: false,
+        Status: '409',
+        Message: 'numero_contrato repetido',
+      })
       .put('/contratos-generales/42', { numero_contrato: '6' })
-      .reply(200, { Status: '200', Data: { ...contrato, numero_contrato: '6' } })
-      .post('/estados-contrato/', { ...cambio, contrato_general_id: { id: 42 } })
+      .reply(200, {
+        Status: '200',
+        Data: { ...contrato, numero_contrato: '6' },
+      })
+      .post('/estados-contrato/', {
+        ...cambio,
+        contrato_general_id: { id: 42 },
+      })
       .reply(201, { Status: '201', Data: { id: 3, actual: true } });
 
     const res = await request(app.getHttpServer())
@@ -104,10 +126,17 @@ describe('POST /contratos-generales/{id}/estados (e2e con nock)', () => {
       .reply(200, { Success: true, Status: '200', Data: 4 })
       .put('/contratos-generales/42')
       .times(2)
-      .reply(409, { Success: false, Status: '409', Message: 'numero_contrato repetido' });
+      .reply(409, {
+        Success: false,
+        Status: '409',
+        Message: 'numero_contrato repetido',
+      });
     const estado = nock(CRUD).post('/estados-contrato/').reply(201, {});
 
-    await request(app.getHttpServer()).post('/contratos-generales/42/estados').send(cambio).expect(409);
+    await request(app.getHttpServer())
+      .post('/contratos-generales/42/estados')
+      .send(cambio)
+      .expect(409);
 
     expect(estado.isDone()).toBe(false);
   });
