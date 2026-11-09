@@ -56,6 +56,39 @@ export class EspaciosFisicosService {
   }
 
   /**
+   * Todas las dependencias activas de Oikos, ordenadas por nombre. El formulario del
+   * contrato ya no filtra por sede (a pedido de la clienta).
+   */
+  obtenerTodasLasDependencias(): Observable<DependenciaSimple[]> {
+    const url = this.buildUrl('dependencia', {
+      query: 'Activo:true',
+      fields: 'Id,Nombre',
+      sortby: 'nombre',
+      order: 'asc',
+      limit: '0',
+    });
+
+    return this.httpService.get<SedeResponse[]>(url).pipe(
+      map((response) =>
+        // Oikos responde [{}] cuando no hay resultados.
+        (response.data ?? [])
+          .filter((dependencia) => dependencia?.Id)
+          .map((dependencia) => ({
+            id: dependencia.Id,
+            nombre: dependencia.Nombre,
+          }))
+          .sort((a, b) =>
+            a.nombre.localeCompare(b.nombre, 'es', {
+              sensitivity: 'base',
+              ignorePunctuation: true,
+            }),
+          ),
+      ),
+      catchError(this.handleError),
+    );
+  }
+
+  /**
    * Dependencia con su nombre y las sedes a las que está asignada en Oikos.
    * Las asignaciones pueden ser a espacios que no son sede: solo se dejan los
    * que están entre las sedes activas.

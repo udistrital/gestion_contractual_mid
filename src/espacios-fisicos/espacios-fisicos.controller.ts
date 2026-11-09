@@ -92,6 +92,54 @@ export class EspaciosFisicosController {
     );
   }
 
+  @Get('/dependencias')
+  @ApiOperation({
+    summary: 'Obtener todas las dependencias',
+    description:
+      'Dependencias activas de Oikos ordenadas por nombre, sin filtrar por sede',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de dependencias obtenida exitosamente',
+    schema: {
+      properties: {
+        Success: { type: 'boolean', example: true },
+        Status: { type: 'number', example: 200 },
+        Message: { type: 'string', example: 'Dependencias obtenidas exitosamente' },
+        Data: {
+          type: 'array',
+          items: {
+            properties: {
+              id: { type: 'number', example: 20 },
+              nombre: { type: 'string', example: 'Facultad de Ingeniería' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 500, description: 'Error al consultar Oikos' })
+  obtenerTodasLasDependencias(): Observable<StandardResponse<DependenciaSimple[]>> {
+    return this.espaciosFisicosService.obtenerTodasLasDependencias().pipe(
+      map(
+        (data): StandardResponse<DependenciaSimple[]> => ({
+          Success: true,
+          Status: HttpStatus.OK,
+          Message: 'Dependencias obtenidas exitosamente',
+          Data: data,
+        }),
+      ),
+      catchError((error) => {
+        const response: StandardResponse<DependenciaSimple[]> = {
+          Success: false,
+          Status: error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: error.message || 'Error al obtener las dependencias',
+        };
+        throw new HttpException(response, response.Status);
+      }),
+    );
+  }
+
   @Get('/dependencias/:id')
   @ApiOperation({
     summary: 'Obtener una dependencia',
