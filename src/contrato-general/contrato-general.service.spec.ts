@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -42,15 +42,24 @@ function crearParametrosIndexados(): Map<number, Map<number, ParametroBase>> {
 describe('ContratoGeneralService', () => {
   let service: ContratoGeneralService;
   let crudGetMock: jest.Mock;
+  let crudPutMock: jest.Mock;
+  let crudPostMock: jest.Mock;
   let getParametrosIndexados: jest.Mock;
 
   beforeEach(async () => {
     crudGetMock = jest.fn();
+    crudPutMock = jest.fn();
+    crudPostMock = jest.fn();
     getParametrosIndexados = jest
       .fn()
       .mockResolvedValue(crearParametrosIndexados());
 
-    mockedAxios.create = jest.fn().mockReturnValue({ get: crudGetMock });
+    mockedAxios.create = jest
+      .fn()
+      .mockReturnValue({ get: crudGetMock, put: crudPutMock, post: crudPostMock });
+    mockedAxios.isAxiosError = jest.fn(
+      (error: any) => !!error?.isAxiosError,
+    ) as any;
     mockedAxios.get = jest.fn().mockResolvedValue({
       data: { Data: { proveedor: { nombre_completo_proveedor: 'Proveedor' } } },
     });
@@ -302,6 +311,134 @@ describe('ContratoGeneralService', () => {
       await expect(
         service.generarConsecutivo({ unidad_ejecutora_id: 6818, vigencia_id: 9001 }),
       ).rejects.toThrow('Error al obtener el conteo de los contratos');
+    });
+  });
+
+  describe('registrarEstado', () => {
+    const SUSCRITO = 6774;
+    const cambio = {
+      estado_parametro_id: SUSCRITO,
+      estado_interno_parametro_id: 6802,
+      usuario_id: 7,
+      usuario_rol: 'JEFE_CONTRATACION_IDEXUD',
+    };
+    const contrato = (extra: Record<string, unknown> = {}) => ({
+      data: {
+        Data: { id: 42, unidad_ejecutora_id: 6819, vigencia_id: 9001, numero_contrato: null, ...extra },
+      },
+    });
+    const errorCrud = (status: number) =>
+      Object.assign(new Error(String(status)), {
+        isAxiosError: true,
+        response: { status, data: { Status: String(status), Message: 'error' } },
+      });
+
+    beforeEach(() => {
+      crudPutMock.mockResolvedValue({ data: { Data: { id: 42 } } });
+      crudPostMock.mockResolvedValue({ data: { Data: { id: 3, actual: true } } });
+      mockedAxios.post = jest
+        .fn()
+        .mockResolvedValue({ data: { Success: true, Status: '200', Data: 2 } });
+    });
+
+    it('un estado que no es SUSCRITO solo se registra', async () => {
+      crudGetMock.mockResolvedValue(contrato());
+
+      const resultado = await service.registrarEstado(42, {
+        ...cambio,
+        estado_parametro_id: 6773,
+      });
+
+      expect(resultado).toEqual({ estado: { id: 3, actual: true }, numero_contrato: null });
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+      expect(crudPutMock).not.toHaveBeenCalled();
+      expect(crudPostMock).toHaveBeenCalledWith('estados-contrato/', {
+        ...cambio,
+        estado_parametro_id: 6773,
+        contrato_general_id: { id: 42 },
+      });
+    });
+
+    it('al pasar a SUSCRITO sin número, lo calcula y lo guarda antes del estado', async () => {
+      crudGetMock.mockResolvedValue(contrato());
+      const orden: string[] = [];
+      crudPutMock.mockImplementation(async () => (orden.push('put'), { data: {} }));
+      crudPostMock.mockImplementation(async () => (orden.push('estado'), { data: { Data: { id: 3 } } }));
+
+      const resultado = await service.registrarEstado(42, cambio);
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'http://test/v1/contratos-generales/conteo-numero-contrato',
+        { unidad_ejecutora_id: 6819, vigencia_id: 9001, estado: SUSCRITO },
+      );
+      expect(crudPutMock).toHaveBeenCalledWith('contratos-generales/42', { numero_contrato: 'ID-3' });
+      expect(orden).toEqual(['put', 'estado']);
+      expect(resultado.numero_contrato).toBe('ID-3');
+    });
+
+    it('si el contrato ya tiene número no genera otro', async () => {
+      crudGetMock.mockResolvedValue(contrato({ numero_contrato: 'ID-1' }));
+
+      const resultado = await service.registrarEstado(42, cambio);
+
+      expect(resultado.numero_contrato).toBe('ID-1');
+      expect(mockedAxios.post).not.toHaveBeenCalled();
+      expect(crudPutMock).not.toHaveBeenCalled();
+      expect(crudPostMock).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['sin vigencia_id', { vigencia_id: null }],
+      ['con una unidad sin prefijo', { unidad_ejecutora_id: 9999 }],
+    ])('responde 400 %s, sin escribir en el CRUD', async (_caso, extra) => {
+      crudGetMock.mockResolvedValue(contrato(extra));
+
+      await expect(service.registrarEstado(42, cambio)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(crudPutMock).not.toHaveBeenCalled();
+      expect(crudPostMock).not.toHaveBeenCalled();
+    });
+
+    it('si el número choca (409) recalcula y reintenta una vez con el siguiente', async () => {
+      crudGetMock.mockResolvedValue(contrato());
+      crudPutMock.mockRejectedValueOnce(errorCrud(409)).mockResolvedValueOnce({ data: {} });
+
+      const resultado = await service.registrarEstado(42, cambio);
+
+      expect(crudPutMock).toHaveBeenNthCalledWith(1, 'contratos-generales/42', { numero_contrato: 'ID-3' });
+      expect(crudPutMock).toHaveBeenNthCalledWith(2, 'contratos-generales/42', { numero_contrato: 'ID-4' });
+      expect(resultado.numero_contrato).toBe('ID-4');
+    });
+
+    it('si choca dos veces responde 409 y no registra el estado', async () => {
+      crudGetMock.mockResolvedValue(contrato());
+      crudPutMock.mockRejectedValue(errorCrud(409));
+
+      const error = await service.registrarEstado(42, cambio).catch((e) => e);
+
+      expect(error).toBeInstanceOf(HttpException);
+      expect(error.getStatus()).toBe(409);
+      expect(crudPutMock).toHaveBeenCalledTimes(2);
+      expect(crudPostMock).not.toHaveBeenCalled();
+    });
+
+    it('si falla el estado después de guardar el número, propaga el error del CRUD', async () => {
+      crudGetMock.mockResolvedValue(contrato());
+      crudPostMock.mockRejectedValue(errorCrud(500));
+
+      const error = await service.registrarEstado(42, cambio).catch((e) => e);
+
+      expect(error.getStatus()).toBe(500);
+      expect(crudPutMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('un contrato inexistente responde 404', async () => {
+      crudGetMock.mockRejectedValue(errorCrud(404));
+
+      const error = await service.registrarEstado(99, cambio).catch((e) => e);
+
+      expect(error.getStatus()).toBe(404);
     });
   });
 
