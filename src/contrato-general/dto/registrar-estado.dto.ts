@@ -19,8 +19,10 @@ export class RegistrarEstadoContratoDto {
   @IsPositive()
   estado_interno_parametro_id: number;
 
+  // El CRUD rechaza 0 con un 400 genérico: se valida aquí para dar un motivo claro.
   @ApiProperty({ example: 7 })
   @IsInt()
+  @IsPositive()
   usuario_id: number;
 
   @ApiProperty({ example: 'JEFE_CONTRATACION_RECTOR' })
