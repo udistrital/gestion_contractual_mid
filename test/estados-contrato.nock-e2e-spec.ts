@@ -75,6 +75,23 @@ describe('POST /contratos-generales/{id}/estados (e2e con nock)', () => {
     expect(crud.isDone()).toBe(false);
   });
 
+  it.each([0, -3])(
+    '400: usuario_id %p no es un entero positivo y no llama al CRUD',
+    async (usuario_id) => {
+      const crud = nock(CRUD)
+        .get('/contratos-generales/42')
+        .reply(200, { Data: contrato });
+
+      const res = await request(app.getHttpServer())
+        .post('/contratos-generales/42/estados')
+        .send({ ...cambio, usuario_id })
+        .expect(400);
+
+      expect(JSON.stringify(res.body)).toContain('usuario_id');
+      expect(crud.isDone()).toBe(false);
+    },
+  );
+
   it('201: ante un 409 del número recalcula, reintenta y luego registra el estado', async () => {
     const crud = nock(CRUD)
       .get('/contratos-generales/42')
