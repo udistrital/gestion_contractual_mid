@@ -157,6 +157,42 @@ describe('EstadosService', () => {
     );
   });
 
+  it('consulta estados-contrato con el filtro y el orden del CRUD', async () => {
+    crudGetMock.mockResolvedValue({ data: { Data: [] } });
+    getParametrosIndexados.mockResolvedValue(crearParametrosIndexados());
+
+    await service.getAll({
+      queryFilter: '"contrato_general_id":10',
+      sortBy: 'fecha_creacion',
+      orderBy: 'DESC',
+    });
+
+    expect(crudGetMock).toHaveBeenCalledWith('estados-contrato/', {
+      params: {
+        query: 'contrato_general_id.id:10',
+        sortby: 'fecha_creacion',
+        order: 'desc',
+        limit: 0,
+        offset: undefined,
+      },
+    });
+  });
+
+  it('entrega solo el id del contrato anidado por el CRUD', async () => {
+    crudGetMock.mockResolvedValue({
+      data: {
+        Data: [
+          { id: 1, contrato_general_id: { id: 10, numero_contrato: null } },
+        ],
+      },
+    });
+    getParametrosIndexados.mockResolvedValue(crearParametrosIndexados());
+
+    const result = await service.getAll({});
+
+    expect(result.Data).toEqual([{ id: 1, contrato_general_id: 10 }]);
+  });
+
   it('consulta los tipos de parámetro 137 y 141 al servicio de parámetros', async () => {
     crudGetMock.mockResolvedValue({ data: { Data: [] } });
     getParametrosIndexados.mockResolvedValue(crearParametrosIndexados());

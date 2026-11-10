@@ -16,6 +16,8 @@ import {
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { ParametroService } from '../parametro/parametro.service';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
+import { aQueryCrud } from '../utils/query-crud.utils';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
 @Injectable()
 export class EstadosService {
@@ -50,7 +52,12 @@ export class EstadosService {
   ): Promise<any[]> {
     return await Promise.all(
       estados.map(async (estado) => {
-        const estadoTransformado = { ...estado };
+        // El CRUD anida el contrato completo; el MF solo usa su id.
+        const estadoTransformado = {
+          ...estado,
+          contrato_general_id:
+            estado.contrato_general_id?.id ?? estado.contrato_general_id,
+        };
 
         const estadosGenerales = estadosPorTipoParametro.get(
           this.idsTipoParametro.estadosGenerales,
@@ -119,17 +126,16 @@ export class EstadosService {
         ? JSON.parse(`{${queryParams.queryFilter}}`)
         : {};
       const params = {
-        sortBy: queryParams.sortBy,
-        orderBy: queryParams.orderBy,
-        limit: queryParams.limit,
+        ...aQueryCrud(queryFilter, queryParams),
+        limit: queryParams.limit ?? 0,
         offset: queryParams.offset,
-        query: JSON.stringify({ ...queryFilter }),
       };
 
       const response = await fetchWithRetry(() =>
-        this.axiosInstance.get<PaginatedResponse<any>>('estados-contrato', {
-          params,
-        }),
+        this.axiosInstance.get<PaginatedResponse<any>>(
+          `${RECURSOS_CRUD.estadoContrato}/`,
+          { params },
+        ),
       );
 
       if (!response.data?.Data) {

@@ -7,8 +7,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosError } from 'axios';
 import { HttpService } from '@nestjs/axios';
-import { catchError, map, Observable, throwError } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of, throwError } from 'rxjs';
 import {
+  AsignacionDependenciaResponse,
+  DependenciaConSedes,
   DependenciaResponse,
   DependenciaSimple,
   SedeResponse,
@@ -53,36 +55,91 @@ export class EspaciosFisicosService {
     );
   }
 
-  obtenerDependenciaPorId(id: string): Observable<DependenciaSimple> {
-    const url = this.buildUrl('asignacion_espacio_fisico_dependencia', {
-      query: `DependenciaId:${id}`,
-      fields: 'Id,DependenciaId',
-      limit: '1',
+  /**
+   * Todas las dependencias activas de Oikos, ordenadas por nombre. El formulario del
+   * contrato ya no filtra por sede (a pedido de la clienta).
+   */
+  obtenerTodasLasDependencias(): Observable<DependenciaSimple[]> {
+    const url = this.buildUrl('dependencia', {
+      query: 'Activo:true',
+      fields: 'Id,Nombre',
+      sortby: 'nombre',
+      order: 'asc',
+      limit: '0',
     });
 
-    return this.httpService.get<DependenciaResponse[]>(url).pipe(
-      map((response) => {
-        if (!response.data || !response.data.length) {
+    return this.httpService.get<SedeResponse[]>(url).pipe(
+      map((response) =>
+        // Oikos responde [{}] cuando no hay resultados.
+        (response.data ?? [])
+          .filter((dependencia) => dependencia?.Id)
+          .map((dependencia) => ({
+            id: dependencia.Id,
+            nombre: dependencia.Nombre,
+          }))
+          .sort((a, b) =>
+            a.nombre.localeCompare(b.nombre, 'es', {
+              sensitivity: 'base',
+              ignorePunctuation: true,
+            }),
+          ),
+      ),
+      catchError(this.handleError),
+    );
+  }
+
+  /**
+   * Dependencia con su nombre y las sedes a las que está asignada en Oikos.
+   * Las asignaciones pueden ser a espacios que no son sede: solo se dejan los
+   * que están entre las sedes activas.
+   */
+  obtenerDependenciaPorId(id: string): Observable<DependenciaConSedes> {
+    const asignaciones$ = this.httpService.get<AsignacionDependenciaResponse[]>(
+      this.buildUrl('asignacion_espacio_fisico_dependencia', {
+        query: `DependenciaId:${id},Activo:true`,
+        fields: 'Id,DependenciaId,EspacioFisicoId',
+        limit: '0',
+      }),
+    );
+    // Sin sedes activas la dependencia sale sin sedes, no como error.
+    const sedes$ = this.httpService
+      .get<SedeResponse[]>(
+        this.buildUrl('espacio_fisico', {
+          query: `TipoEspacioFisicoId:${this.idSedeOikos},Activo:true`,
+          fields: 'Id,Nombre',
+          limit: '0',
+        }),
+      )
+      .pipe(
+        catchError((error) =>
+          axios.isAxiosError(error) && error.response?.status === 404
+            ? of({ data: [] as SedeResponse[] })
+            : throwError(() => error),
+        ),
+      );
+
+    return forkJoin([asignaciones$, sedes$]).pipe(
+      map(([asignaciones, sedes]) => {
+        // Oikos responde [{}] cuando no hay resultados.
+        const validas = (asignaciones.data ?? []).filter(
+          (item) => item?.DependenciaId?.Id,
+        );
+        if (!validas.length) {
           this.logger.warn(`No se encontró la dependencia con ID ${id}`);
           throw new NotFoundException(
             `No se encontró la dependencia con ID ${id}`,
           );
         }
-
-        const dependencia = response.data[0];
-
-        if (!dependencia.DependenciaId) {
-          this.logger.error(
-            `Datos incompletos o malformados para la dependencia ${id}`,
-          );
-          throw new InternalServerErrorException(
-            'Error en el formato de los datos recibidos',
-          );
-        }
-
+        const espacios = new Set(
+          validas.map((item) => item.EspacioFisicoId?.Id).filter(Boolean),
+        );
         return {
-          id: dependencia.DependenciaId.Id,
-          nombre: dependencia.DependenciaId.Nombre,
+          id: validas[0].DependenciaId.Id,
+          nombre: validas[0].DependenciaId.Nombre,
+          sedes: (sedes.data ?? [])
+            .filter((sede) => sede?.Id && espacios.has(sede.Id))
+            .map((sede) => ({ id: sede.Id, nombre: sede.Nombre }))
+            .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
         };
       }),
       catchError(this.handleError),

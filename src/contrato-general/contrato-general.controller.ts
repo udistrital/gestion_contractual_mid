@@ -14,9 +14,10 @@ import {
 } from '@nestjs/common';
 import { ContratoGeneralService } from './contrato-general.service';
 import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
-import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { StandardResponse } from '../interfaces/responses.interface';
 import { ParametrosConsultarContratoDto } from './dto/params.dto';
+import { RegistrarEstadoContratoDto } from './dto/registrar-estado.dto';
 
 @Controller('contratos-generales')
 export class ContratoGeneralController {
@@ -172,8 +173,15 @@ export class ContratoGeneralController {
     }
   }
 
+  /**
+   * @deprecated Se conserva para los clientes que aún lo llaman.
+   * El número lo asigna POST /contratos-generales/{id}/estados al pasar a SUSCRITO.
+   */
   @Post('numero-contrato')
-  @ApiOperation({ summary: 'Generación de número de contrato' })
+  @ApiOperation({
+    summary: 'Generación de número de contrato (obsoleto: usar POST /contratos-generales/{id}/estados)',
+    deprecated: true,
+  })
   @ApiResponse({
     status: 200,
     description: 'Número de contrato generado exitosamente',
@@ -195,6 +203,56 @@ export class ContratoGeneralController {
     } catch (error) {
       this.logger.error(
         `Error al generar número de contrato: ${error.message}`,
+        error.stack,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.INTERNAL_SERVER_ERROR,
+          Message: `Error interno del servidor: ${error.message}`,
+          Data: null,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':id/estados')
+  @ApiOperation({
+    summary:
+      'Registra un estado del contrato; al pasar a SUSCRITO asigna el número de contrato',
+  })
+  @ApiParam({ name: 'id', description: 'Id del contrato general' })
+  @ApiBody({ type: RegistrarEstadoContratoDto })
+  @ApiResponse({ status: 201, description: 'Estado registrado; Data = { estado, numero_contrato }' })
+  @ApiResponse({ status: 400, description: 'Cuerpo inválido, contrato sin vigencia o unidad sin prefijo' })
+  @ApiResponse({ status: 404, description: 'Contrato no encontrado' })
+  @ApiResponse({ status: 409, description: 'El número chocó dos veces con otro contrato' })
+  async registrarEstado(
+    @Param(ValidationPipe) param: ParametrosConsultarContratoDto,
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    body: RegistrarEstadoContratoDto,
+  ): Promise<StandardResponse<any>> {
+    try {
+      const result = await this.contratoGeneralService.registrarEstado(
+        Number(param.id),
+        body,
+      );
+
+      return {
+        Success: true,
+        Status: HttpStatus.CREATED,
+        Message: 'Estado del contrato registrado',
+        Data: result,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al registrar estado del contrato: ${error.message}`,
         error.stack,
       );
 
