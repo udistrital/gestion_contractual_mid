@@ -61,19 +61,153 @@ describe('PolizasService', () => {
     );
   });
 
-  it('consultar: reenvía la ruta y los query params, devuelve status y body del CRUD', async () => {
-    const body = { Success: true, Status: 200, Data: [{ id: 1 }] };
-    requestMock.mockResolvedValue({ status: 200, data: body });
-    const params = { query: '{"contrato_general_id":1}', limit: '1' };
+  it('consultar: traduce filtro y orden, y devuelve la forma de los consumidores', async () => {
+    requestMock.mockResolvedValue({
+      status: 200,
+      data: {
+        Success: true,
+        Status: '200',
+        Data: [
+          {
+            id: 1,
+            contrato_general_id: { id: 1, numero_contrato: null },
+            fecha_inicio: '2026-01-01T00:00:00Z',
+          },
+        ],
+        Metadata: { total: 1 },
+      },
+    });
 
-    const resultado = await service.consultar('polizas', params);
+    const resultado = await service.consultar('polizas', {
+      query: '{"contrato_general_id":1,"activo":true}',
+      limit: '1',
+      sortBy: 'id',
+      orderBy: 'ASC',
+      include: 'estados',
+    });
 
     expect(requestMock).toHaveBeenCalledWith({
       method: 'GET',
       url: 'polizas',
-      params,
+      params: {
+        query: 'contrato_general_id.id:1,activo:true',
+        sortby: 'id',
+        order: 'asc',
+        limit: '1',
+        offset: undefined,
+      },
     });
-    expect(resultado).toEqual({ status: 200, body });
+    expect(resultado).toEqual({
+      status: 200,
+      body: {
+        Success: true,
+        Status: 200,
+        Data: [
+          { id: 1, contrato_general_id: 1, fecha_inicio: '2026-01-01' },
+        ],
+        Metadata: { total: 1 },
+      },
+    });
+  });
+
+  it('consultar: responde 400 si el filtro no es JSON', async () => {
+    const error = await Promise.resolve()
+      .then(() => service.consultar('polizas', { query: 'activo:true' }))
+      .catch((e) => e);
+
+    expect(error.getStatus()).toBe(400);
+    expect(requestMock).not.toHaveBeenCalled();
+  });
+
+  it('crear: envía la llave foránea como { id }', async () => {
+    requestMock.mockResolvedValue({
+      status: 201,
+      data: {
+        Success: true,
+        Status: '201',
+        Data: { id: 3, contrato_general_id: { id: 1 } },
+      },
+    });
+
+    const resultado = await service.crear('polizas', {
+      contrato_general_id: 1,
+    });
+
+    expect(requestMock).toHaveBeenCalledWith({
+      method: 'POST',
+      url: 'polizas',
+      data: { contrato_general_id: { id: 1 } },
+    });
+    expect(resultado.body).toEqual({
+      Success: true,
+      Status: 201,
+      Data: { id: 3, contrato_general_id: 1 },
+    });
+  });
+
+  describe('crearAmparos', () => {
+    const amparos = [
+      { contrato_general_id: 10, amparo_id: 6602 },
+      { contrato_general_id: 10, amparo_id: 6605 },
+    ];
+
+    it('registra uno por uno y responde 201 con los creados', async () => {
+      requestMock
+        .mockResolvedValueOnce({ status: 201, data: { Status: '201', Data: { id: 1 } } })
+        .mockResolvedValueOnce({ status: 201, data: { Status: '201', Data: { id: 2 } } });
+
+      const resultado = await service.crearAmparos('amparos-polizas', amparos);
+
+      expect(requestMock).toHaveBeenCalledTimes(2);
+      expect(requestMock.mock.calls[0][0]).toEqual({
+        method: 'POST',
+        url: 'amparos-polizas',
+        data: { contrato_general_id: { id: 10 }, amparo_id: 6602 },
+      });
+      expect(resultado).toEqual({
+        status: 201,
+        body: {
+          Success: true,
+          Status: 201,
+          Message: 'Amparos creados',
+          Data: [{ id: 1 }, { id: 2 }],
+          Metadata: { total: 2 },
+        },
+      });
+    });
+
+    it('si falla una parte sigue con los demás y responde 206', async () => {
+      const error = Object.assign(new Error('400'), {
+        isAxiosError: true,
+        response: { status: 400, data: { Message: 'amparo_id es obligatorio' } },
+      });
+      requestMock
+        .mockRejectedValueOnce(error)
+        .mockResolvedValueOnce({ status: 201, data: { Status: '201', Data: { id: 2 } } });
+
+      const resultado = await service.crearAmparos('amparos-polizas', amparos);
+
+      expect(requestMock).toHaveBeenCalledTimes(2);
+      expect(resultado).toEqual({
+        status: 206,
+        body: {
+          Success: true,
+          Status: 206,
+          Message: 'Algunos amparos no pudieron ser creados',
+          Data: {
+            creados: [{ id: 2 }],
+            errores: [{ amparo: amparos[0], error: 'amparo_id es obligatorio' }],
+          },
+        },
+      });
+    });
+
+    it('rechaza un cuerpo que no sea arreglo sin llamar al CRUD', async () => {
+      await expect(
+        service.crearAmparos('amparos-polizas', { amparo_id: 1 }),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(requestMock).not.toHaveBeenCalled();
+    });
   });
 
   it('crear: reenvía el body y conserva el status 206 del CRUD', async () => {
@@ -95,15 +229,27 @@ describe('PolizasService', () => {
     expect(resultado).toEqual({ status: 206, body });
   });
 
-  it('actualizar: PUT a ruta/id con el body', async () => {
+  it('actualizar: PUT a ruta/id y conserva poliza_id en null', async () => {
     requestMock.mockResolvedValue({ status: 200, data: { Success: true } });
 
-    await service.actualizar('polizas', 3, { numero_poliza: 'A1' });
+    await service.actualizar('amparos-polizas', 3, { poliza_id: null });
 
     expect(requestMock).toHaveBeenCalledWith({
       method: 'PUT',
-      url: 'polizas/3',
-      data: { numero_poliza: 'A1' },
+      url: 'amparos-polizas/3',
+      data: { poliza_id: null },
+    });
+  });
+
+  it('actualizar: envía poliza_id como { id }', async () => {
+    requestMock.mockResolvedValue({ status: 200, data: { Success: true } });
+
+    await service.actualizar('amparos-polizas', 3, { poliza_id: 9 });
+
+    expect(requestMock).toHaveBeenCalledWith({
+      method: 'PUT',
+      url: 'amparos-polizas/3',
+      data: { poliza_id: { id: 9 } },
     });
   });
 

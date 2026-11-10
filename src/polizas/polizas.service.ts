@@ -2,6 +2,11 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
+import {
+  aCuerpoCrud,
+  aFormaConsumidores,
+  aQueryCrud,
+} from '../utils/query-crud.utils';
 
 export interface RespuestaCrud {
   status: number;
@@ -9,8 +14,8 @@ export interface RespuestaCrud {
 }
 
 // Intermediario entre el MF y gestion_contractual_crud para pólizas y amparos
-// (#360). Reenvía query, body y sobre de respuesta sin transformarlos,
-// para que el MF consuma el MID con el mismo contrato que tenía el CRUD.
+// (#360). Traduce filtro, cuerpo y respuesta entre la forma que usan el MF y
+// minuta_contractual_mid y la del CRUD.
 @Injectable()
 export class PolizasService {
   private readonly logger = new Logger(PolizasService.name);
@@ -24,19 +29,125 @@ export class PolizasService {
   }
 
   consultar(ruta: string, params: Record<string, any>): Promise<RespuestaCrud> {
-    return this.reenviar({ method: 'GET', url: ruta, params }, true);
+    const { query, sortBy, orderBy, limit, offset } = params;
+    return this.reenviar(
+      {
+        method: 'GET',
+        url: ruta,
+        params: {
+          ...aQueryCrud(this.leerFiltro(query), { sortBy, orderBy }),
+          limit,
+          offset,
+        },
+      },
+      true,
+    );
   }
 
   crear(ruta: string, body: any): Promise<RespuestaCrud> {
-    return this.reenviar({ method: 'POST', url: ruta, data: body });
+    return this.reenviar({
+      method: 'POST',
+      url: ruta,
+      data: aCuerpoCrud(body),
+    });
+  }
+
+  // El CRUD registra de a uno. Responde Status 201 con los creados, o Status 206
+  // con { creados, errores } si falla una parte.
+  async crearAmparos(ruta: string, amparos: any): Promise<RespuestaCrud> {
+    if (!Array.isArray(amparos)) {
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.BAD_REQUEST,
+          Message: 'El cuerpo debe ser un arreglo de amparos',
+          Data: null,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const creados: unknown[] = [];
+    const errores: { amparo: unknown; error: string }[] = [];
+    for (const amparo of amparos) {
+      try {
+        const { body } = await this.crear(ruta, amparo);
+        creados.push(body.Data);
+      } catch (error) {
+        errores.push({ amparo, error: this.mensajeDeError(error) });
+      }
+    }
+
+    if (errores.length > 0) {
+      return {
+        status: HttpStatus.PARTIAL_CONTENT,
+        body: {
+          Success: true,
+          Status: HttpStatus.PARTIAL_CONTENT,
+          Message: 'Algunos amparos no pudieron ser creados',
+          Data: { creados, errores },
+        },
+      };
+    }
+
+    return {
+      status: HttpStatus.CREATED,
+      body: {
+        Success: true,
+        Status: HttpStatus.CREATED,
+        Message: 'Amparos creados',
+        Data: creados,
+        Metadata: { total: creados.length },
+      },
+    };
+  }
+
+  private mensajeDeError(error: unknown): string {
+    const respuesta = error instanceof HttpException ? error.getResponse() : null;
+    return (respuesta as any)?.Message ?? (error as Error)?.message ?? String(error);
   }
 
   actualizar(ruta: string, id: number, body: any): Promise<RespuestaCrud> {
-    return this.reenviar({ method: 'PUT', url: `${ruta}/${id}`, data: body });
+    return this.reenviar({
+      method: 'PUT',
+      url: `${ruta}/${id}`,
+      data: aCuerpoCrud(body),
+    });
   }
 
   eliminar(ruta: string, id: number): Promise<RespuestaCrud> {
     return this.reenviar({ method: 'DELETE', url: `${ruta}/${id}` });
+  }
+
+  private leerFiltro(query?: string): Record<string, unknown> {
+    if (!query) return {};
+    try {
+      return JSON.parse(query);
+    } catch {
+      throw new HttpException(
+        {
+          Success: false,
+          Status: HttpStatus.BAD_REQUEST,
+          Message: 'El filtro query debe ser un JSON válido',
+          Data: null,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  // El MF espera Status como número.
+  private aRespuestaConsumidores(cuerpo: any): any {
+    const { Data, Status } = cuerpo;
+    return {
+      ...cuerpo,
+      ...(Status !== undefined && { Status: Number(Status) }),
+      Data: Array.isArray(Data)
+        ? Data.map(aFormaConsumidores)
+        : Data && typeof Data === 'object'
+          ? aFormaConsumidores(Data)
+          : Data,
+    };
   }
 
   // Solo los GET se reintentan: repetir un POST/PUT/DELETE podría duplicar
@@ -52,7 +163,10 @@ export class PolizasService {
           )
         : await this.gestionContractualCrud.request(config);
 
-      return { status: response.status, body: response.data };
+      return {
+        status: response.status,
+        body: this.aRespuestaConsumidores(response.data),
+      };
     } catch (error) {
       // Error HTTP del CRUD (400, 404, 500...): se propaga tal cual.
       if (axios.isAxiosError(error) && error.response) {

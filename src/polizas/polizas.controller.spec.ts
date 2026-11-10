@@ -18,6 +18,7 @@ describe('Controladores de pólizas', () => {
           useValue: {
             consultar: jest.fn(),
             crear: jest.fn(),
+            crearAmparos: jest.fn(),
             actualizar: jest.fn(),
             eliminar: jest.fn(),
           },
@@ -57,12 +58,14 @@ describe('Controladores de pólizas', () => {
     expect(service.actualizar).toHaveBeenCalledWith('polizas', 7, { b: 2 });
   });
 
-  it('POST /amparos-polizas devuelve el body de creación parcial del CRUD', async () => {
-    service.crear.mockResolvedValue({ status: 206, body: { Status: 206 } });
+  it('POST /amparos-polizas devuelve el body de creación parcial', async () => {
+    const body = { Status: 206 };
+    service.crearAmparos.mockResolvedValue({ status: 206, body });
 
-    await amparosController.crear([{ amparo_id: 1 }]);
+    const respuesta = await amparosController.crear([{ amparo_id: 1 }]);
 
-    expect(service.crear).toHaveBeenCalledWith('amparos-polizas', [
+    expect(respuesta).toBe(body);
+    expect(service.crearAmparos).toHaveBeenCalledWith('amparos-polizas', [
       { amparo_id: 1 },
     ]);
   });

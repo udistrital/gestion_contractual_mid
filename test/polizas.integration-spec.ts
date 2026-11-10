@@ -47,9 +47,10 @@ describeIf('Pólizas y amparos-polizas vía MID (integración real)', () => {
         contrato_general_id: CONTRATO_ID,
         numero_poliza: `INT-MID-${Date.now()}`.slice(0, 50),
         entidad_aseguradora_id: 1,
-        fecha_inicio: '2026-01-01',
-        fecha_fin: '2026-12-31',
-        fecha_expedicion: '2026-01-01',
+        // Como las envía el MF: el CRUD exige RFC3339.
+        fecha_inicio: '2026-01-01T05:00:00.000Z',
+        fecha_fin: '2026-12-31T05:00:00.000Z',
+        fecha_expedicion: '2026-01-01T05:00:00.000Z',
         activo: false,
       })
       .expect(201);
@@ -77,7 +78,7 @@ describeIf('Pólizas y amparos-polizas vía MID (integración real)', () => {
     expect(res.body.Data.some((p: any) => p.id === polizaId)).toBe(true);
   }, 30000);
 
-  it('POST /amparos-polizas crea amparos en lote (201)', async () => {
+  it('POST /amparos-polizas crea los amparos uno por uno (201)', async () => {
     const res = await request(app.getHttpServer())
       .post('/amparos-polizas')
       .send([

@@ -8,7 +8,9 @@ import { AxiosInstance } from 'axios';
 import { StandardResponse } from '../interfaces/responses.interface';
 import { ParametroService } from 'src/parametro/parametro.service';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
+import { aFormaConsumidores, aQueryCrud } from '../utils/query-crud.utils';
 import { ConfigService } from '@nestjs/config';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
 @Injectable()
 export class AmparosContratosService {
@@ -32,12 +34,9 @@ export class AmparosContratosService {
       // gestion_contractual_crud no expone amparos/contrato/:id; se filtra por
       // contrato y se excluyen los amparos inactivos (soft delete).
       const amparosResponse = await fetchWithRetry(() =>
-        this.gestionContractualCrud.get<StandardResponse<any>>('amparos-polizas', {
+        this.gestionContractualCrud.get<StandardResponse<any>>(RECURSOS_CRUD.amparoPoliza, {
           params: {
-            query: JSON.stringify({
-              contrato_general_id: contratoId,
-              activo: true,
-            }),
+            ...aQueryCrud({ contrato_general_id: contratoId, activo: true }),
             limit: 0,
           },
         }),
@@ -55,7 +54,7 @@ export class AmparosContratosService {
       );
 
       return amparos.map((amparo: any) => ({
-        ...amparo,
+        ...aFormaConsumidores(amparo),
         amparo: amparosMap.get(this.tipoParametroAmparos)?.get(amparo.amparo_id)?.Nombre ?? null,
       }));
     } catch (error) {

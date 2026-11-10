@@ -8,11 +8,11 @@ import { AmparosContratosModule } from './../src/amparos-contratos/amparos-contr
 
 // e2e sin red real: controller + service + axios reales, CRUD y parámetros
 // simulados con nock.
-const CRUD = 'http://crud.test';
+const CRUD = 'http://crud.test/v1';
 const PARAMETROS = 'http://parametros.test';
 
 const queryAmparos = (contratoId: number) => ({
-  query: JSON.stringify({ contrato_general_id: contratoId, activo: true }),
+  query: `contrato_general_id.id:${contratoId},activo:true`,
   limit: '0',
 });
 
