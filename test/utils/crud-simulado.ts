@@ -85,7 +85,7 @@ export function responderJson(
   res.end(JSON.stringify(body));
 }
 
-/** Respuesta con el formato de parametros_crud (Beego). */
+/** Respuesta con el formato de parametros_crud. */
 export function respuestaParametros(Data: unknown[]) {
   return { Success: true, Status: '200', Message: 'Request successful', Data };
 }

@@ -1,4 +1,7 @@
 import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -17,6 +20,9 @@ import { BaseQueryParamsDto } from '../utils/query-params.base.dto';
 import { datos } from './conf';
 import { ParametroService } from '../parametro/parametro.service';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
+import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
+import { environment } from 'src/environments/environment';
+import { RegistrarEstadoContratoDto } from './dto/registrar-estado.dto';
 
 @Injectable()
 export class ContratoGeneralService {
@@ -41,13 +47,13 @@ export class ContratoGeneralService {
     modalidad_seleccion_id: 115,
     regimen_contratacion_id: 116,
     procedimiento_id: 117,
-    clase_contratista_id: 120,
+    clase_proveedor_id: 120,
     tipo_moneda_id: 122,
-    tipo_gasto_Id: 123,
+    tipo_gasto_id: 123,
     origen_recursos_id: 124,
-    origen_presupuestos_id: 125,
+    origen_presupuesto_id: 125,
     tema_gasto_inversion_id: 126,
-    medio_pogo_id: 127,
+    medio_pago_id: 127,
     unidad_ejecutora_id: 146,
     estado_contrato_id: 137,
     tipo_persona_id: 132,
@@ -58,7 +64,7 @@ export class ContratoGeneralService {
     try {
       const response = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<ContratoResponse>(
-          `contratos-generales/${id}`,
+          `${RECURSOS_CRUD.contratoGeneral}/${id}`,
         ),
       );
 
@@ -261,7 +267,7 @@ export class ContratoGeneralService {
 
           if (contratoRaw.contratista.clase_contratista_id) {
             const claseContratistaMap = cacheParametros.get(
-              this.parameterMap.clase_contratista_id,
+              this.parameterMap.clase_proveedor_id,
             );
             if (claseContratistaMap) {
               contratoTransformado.contratista.clase_contratista_id =
@@ -466,7 +472,7 @@ export class ContratoGeneralService {
         cacheParametros,
         ids,
       );
-      return contratoTransformado;
+      return this.aFormaConsumidores(contratoTransformado);
     } catch (error) {
       this.logger.error(
         `Error en getContratoTransformed para ID ${id}:`,
@@ -474,6 +480,28 @@ export class ContratoGeneralService {
       );
       throw error;
     }
+  }
+
+  // Forma del contrato que usan el MF y minuta_contractual_mid: renombra
+  // fecha_suscripcion_estudio y origen_presupuesto(_id) y deja las fechas sin hora.
+  private aFormaConsumidores(contrato: any): any {
+    const {
+      fecha_suscripcion_estudio,
+      origen_presupuesto_id,
+      origen_presupuesto,
+      ...resto
+    } = contrato;
+    const soloFecha = (fecha?: string | null) => fecha?.slice(0, 10) ?? fecha;
+
+    return {
+      ...resto,
+      fecha_inicial: soloFecha(contrato.fecha_inicial),
+      fecha_final: soloFecha(contrato.fecha_final),
+      fecha_suscripcion: soloFecha(contrato.fecha_suscripcion),
+      fecha_suscripcion_estudios: soloFecha(fecha_suscripcion_estudio),
+      origen_presupuestos_id: origen_presupuesto_id,
+      origen_presupuestos: origen_presupuesto,
+    };
   }
 
   private async consultarProveedor(id: number): Promise<string | null> {
@@ -501,10 +529,12 @@ export class ContratoGeneralService {
         'GESTION_CONTRACTUAL_CRUD_SERVICE',
       );
 
-      const url = `${urlGestionContractualCrud}contratos-generales/${endpoint}/`;
+      const base = urlGestionContractualCrud.replace(/\/$/, '');
+      const url = `${base}/${RECURSOS_CRUD.contratoGeneral}/${endpoint}`;
       const { data } = await axios.post<any>(url, body);
 
-      if (!data.Success || data.Status != '200') {
+      // El CRUD responde Status como número en los éxitos y como texto en los errores.
+      if (!data.Success || Number(data.Status) !== 200) {
         return null;
       }
 
@@ -514,14 +544,36 @@ export class ContratoGeneralService {
     }
   }
 
+  // Los dos conteos del CRUD exigen vigencia_id, el Id del parámetro de vigencia.
+  private leerVigenciaId(body: any): number {
+    const vigenciaId = Number(body?.vigencia_id);
+    if (!Number.isInteger(vigenciaId) || vigenciaId <= 0) {
+      throw new BadRequestException({
+        Success: false,
+        Status: HttpStatus.BAD_REQUEST,
+        Message: 'El campo vigencia_id es requerido y debe ser un entero',
+        Data: null,
+      });
+    }
+    return vigenciaId;
+  }
+
   async generarConsecutivo(body: any) {
+    const vigenciaId = this.leerVigenciaId(body);
+
     try {
       const { unidad_ejecutora_id } = body;
       if (!unidad_ejecutora_id) {
         throw new Error(`El campo unidad_ejecutora_id es requerido`);
       }
 
-      let conteo = await this.obtenerConteo(body, 'conteo-consecutivo');
+      let conteo = await this.obtenerConteo(
+        {
+          unidad_ejecutora_id: Number(unidad_ejecutora_id),
+          vigencia_id: vigenciaId,
+        },
+        'conteo-consecutivo',
+      );
       if (!Number.isInteger(conteo) || conteo < 0) {
         throw new Error('Error al obtener el conteo de los contratos');
       }
@@ -536,13 +588,12 @@ export class ContratoGeneralService {
   }
 
   async generarNumeroContrato(body: any) {
+    const vigenciaId = this.leerVigenciaId(body);
+
     try {
-      const { unidad_ejecutora_id, vigencia, estado } = body;
+      const { unidad_ejecutora_id, estado } = body;
       if (!unidad_ejecutora_id) {
         throw new Error(`El campo unidad_ejecutora_id es requerido`);
-      }
-      if (!vigencia) {
-        throw new Error('El campo vigencia es requerido');
       }
       if (!estado) {
         throw new Error('El campo estado es requerido');
@@ -553,17 +604,127 @@ export class ContratoGeneralService {
         throw new Error('Unidad ejecutora invalida');
       }
 
-      let conteo = await this.obtenerConteo(body, 'conteo-numero-contrato');
-      if (!Number.isInteger(conteo) || conteo < 0) {
-        throw new Error('Error al obtener el conteo de los contratos');
-      }
-
-      const numeroContrato = prefijo + (conteo + 1) + sufijo;
-      return numeroContrato;
+      const conteo = await this.contarNumeros(
+        Number(unidad_ejecutora_id),
+        vigenciaId,
+        Number(estado),
+      );
+      return prefijo + (conteo + 1) + sufijo;
     } catch (error: any) {
       throw new InternalServerErrorException(
         `Error al generar número de contrato: ${error.message}`,
       );
+    }
+  }
+
+  // Contratos de la unidad y la vigencia que tienen o tuvieron el estado.
+  private async contarNumeros(
+    unidadEjecutoraId: number,
+    vigenciaId: number,
+    estado: number,
+  ): Promise<number> {
+    const conteo = await this.obtenerConteo(
+      { unidad_ejecutora_id: unidadEjecutoraId, vigencia_id: vigenciaId, estado },
+      'conteo-numero-contrato',
+    );
+    if (!Number.isInteger(conteo) || conteo < 0) {
+      throw new Error('Error al obtener el conteo de los contratos');
+    }
+    return conteo;
+  }
+
+  // Registra un estado del contrato. Al pasar a SUSCRITO, si el contrato no tiene
+  // número, lo calcula y lo guarda antes del estado: un reintento tras una falla
+  // a mitad encuentra el número y no genera otro.
+  async registrarEstado(id: number, cambio: RegistrarEstadoContratoDto) {
+    const contrato = await this.leerContratoCrud(id);
+    let numeroContrato: string | null = contrato.numero_contrato || null;
+
+    if (
+      cambio.estado_parametro_id === environment.ESTADOS_GENERALES.SUSCRITO &&
+      !numeroContrato
+    ) {
+      numeroContrato = await this.asignarNumero(contrato);
+    }
+
+    const { data } = await this.escribirCrud(() =>
+      this.gestionContractualCrud.post(`${RECURSOS_CRUD.estadoContrato}/`, {
+        ...cambio,
+        contrato_general_id: { id },
+      }),
+    );
+    return { estado: data?.Data ?? null, numero_contrato: numeroContrato };
+  }
+
+  private async leerContratoCrud(id: number): Promise<any> {
+    const { data } = await this.escribirCrud(() =>
+      this.gestionContractualCrud.get(`${RECURSOS_CRUD.contratoGeneral}/${id}`),
+    );
+    if (!data?.Data) {
+      throw new NotFoundException(`No se encontró el contrato con id ${id}`);
+    }
+    return data.Data;
+  }
+
+  // Si el número choca con otro (409 de la restricción única), recalcula y
+  // reintenta una sola vez con el siguiente disponible.
+  private async asignarNumero(contrato: any): Promise<string> {
+    const unidad = Number(contrato.unidad_ejecutora_id);
+    const vigenciaId = Number(contrato.vigencia_id);
+    if (!Number.isInteger(vigenciaId) || vigenciaId <= 0) {
+      throw this.solicitudInvalida(
+        'El contrato no tiene vigencia_id: no se puede asignar el número de contrato',
+      );
+    }
+    const formato = datos[unidad];
+    if (!formato) {
+      throw this.solicitudInvalida(
+        `La unidad ejecutora ${unidad} no tiene prefijo de número de contrato`,
+      );
+    }
+
+    const suscrito = environment.ESTADOS_GENERALES.SUSCRITO;
+    let consecutivo =
+      (await this.contarNumeros(unidad, vigenciaId, suscrito)) + 1;
+    for (let intento = 0; ; intento++) {
+      const numero = `${formato.prefijo}${consecutivo}${formato.sufijo}`;
+      try {
+        await this.escribirCrud(() =>
+          this.gestionContractualCrud.put(
+            `${RECURSOS_CRUD.contratoGeneral}/${contrato.id}`,
+            { numero_contrato: numero },
+          ),
+        );
+        return numero;
+      } catch (error) {
+        const choque =
+          error instanceof HttpException && error.getStatus() === HttpStatus.CONFLICT;
+        if (!choque || intento > 0) throw error;
+        const recontado =
+          (await this.contarNumeros(unidad, vigenciaId, suscrito)) + 1;
+        consecutivo = Math.max(recontado, consecutivo + 1);
+      }
+    }
+  }
+
+  private solicitudInvalida(mensaje: string): BadRequestException {
+    return new BadRequestException({
+      Success: false,
+      Status: HttpStatus.BAD_REQUEST,
+      Message: mensaje,
+      Data: null,
+    });
+  }
+
+  // Los errores HTTP del CRUD se propagan con su status y su cuerpo.
+  private async escribirCrud<T>(peticion: () => Promise<T>): Promise<T> {
+    try {
+      return await peticion();
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        throw new HttpException(error.response.data, error.response.status);
+      }
+      throw error;
     }
   }
 }

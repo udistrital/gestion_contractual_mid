@@ -46,6 +46,54 @@
         ]
       }
     },
+    "/parametros": {
+      "get": {
+        "operationId": "ParametrosController_obtenerParametrosPorTipo",
+        "parameters": [
+          {
+            "name": "ids",
+            "required": true,
+            "in": "query",
+            "description": "ID del/los tipo(s) de parámetro(s) solicitado(s) separados por coma",
+            "schema": {
+              "example": "137,141",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna los listados de parámetros solicitados."
+          },
+          "400": {
+            "description": "Falta el parámetro ids o contiene valores no numéricos."
+          },
+          "500": {
+            "description": "Error al consultar el servicio de parámetros."
+          }
+        },
+        "summary": "Retorna los parámetros de los tipos indicados por los IDs.",
+        "tags": [
+          "Parametros"
+        ]
+      },
+      "delete": {
+        "operationId": "ParametrosController_limpiarCacheParametros",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Retorna el estado final de la solicitud."
+          },
+          "500": {
+            "description": "Error al limpiar la caché."
+          }
+        },
+        "summary": "Limpia la memoria caché de los tipos de parámetro.",
+        "tags": [
+          "Parametros"
+        ]
+      }
+    },
     "/cargue-masivo/especificaciones-tecnicas": {
       "post": {
         "operationId": "CargueMasivoController_cargueMasivo",
@@ -185,6 +233,7 @@
     },
     "/contratos-generales/numero-contrato": {
       "post": {
+        "deprecated": true,
         "operationId": "ContratoGeneralController_generarNumeroContrato",
         "parameters": [],
         "responses": {
@@ -195,7 +244,49 @@
             "description": "Error interno del servidor"
           }
         },
-        "summary": "Generación de número de contrato",
+        "summary": "Generación de número de contrato (obsoleto: usar POST /contratos-generales/{id}/estados)",
+        "tags": [
+          "ContratoGeneral"
+        ]
+      }
+    },
+    "/contratos-generales/{id}/estados": {
+      "post": {
+        "operationId": "ContratoGeneralController_registrarEstado",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Id del contrato general",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarEstadoContratoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Estado registrado; Data = { estado, numero_contrato }"
+          },
+          "400": {
+            "description": "Cuerpo inválido, contrato sin vigencia o unidad sin prefijo"
+          },
+          "404": {
+            "description": "Contrato no encontrado"
+          },
+          "409": {
+            "description": "El número chocó dos veces con otro contrato"
+          }
+        },
+        "summary": "Registra un estado del contrato; al pasar a SUSCRITO asigna el número de contrato",
         "tags": [
           "ContratoGeneral"
         ]
@@ -265,54 +356,6 @@
         "summary": "Retorna información de contratos generales manteniendo los IDs originales",
         "tags": [
           "ContratoGeneral"
-        ]
-      }
-    },
-    "/parametros": {
-      "get": {
-        "operationId": "ParametrosController_obtenerParametrosPorTipo",
-        "parameters": [
-          {
-            "name": "ids",
-            "required": true,
-            "in": "query",
-            "description": "ID del/los tipo(s) de parámetro(s) solicitado(s) separados por coma",
-            "schema": {
-              "example": "137,141",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Retorna los listados de parámetros solicitados."
-          },
-          "400": {
-            "description": "Falta el parámetro ids o contiene valores no numéricos."
-          },
-          "500": {
-            "description": "Error al consultar el servicio de parámetros."
-          }
-        },
-        "summary": "Retorna los parámetros de los tipos indicados por los IDs.",
-        "tags": [
-          "Parametros"
-        ]
-      },
-      "delete": {
-        "operationId": "ParametrosController_limpiarCacheParametros",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Retorna el estado final de la solicitud."
-          },
-          "500": {
-            "description": "Error al limpiar la caché."
-          }
-        },
-        "summary": "Limpia la memoria caché de los tipos de parámetro.",
-        "tags": [
-          "Parametros"
         ]
       }
     },
@@ -389,6 +432,162 @@
           }
         },
         "summary": "Obtener sedes",
+        "tags": [
+          "Espacios Físicos"
+        ]
+      }
+    },
+    "/espacios-fisicos/dependencias": {
+      "get": {
+        "description": "Dependencias activas de Oikos ordenadas por nombre, sin filtrar por sede",
+        "operationId": "EspaciosFisicosController_obtenerTodasLasDependencias",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de dependencias obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "Success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "Status": {
+                      "type": "number",
+                      "example": 200
+                    },
+                    "Message": {
+                      "type": "string",
+                      "example": "Dependencias obtenidas exitosamente"
+                    },
+                    "Data": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "number",
+                            "example": 20
+                          },
+                          "nombre": {
+                            "type": "string",
+                            "example": "Facultad de Ingeniería"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error al consultar Oikos"
+          }
+        },
+        "summary": "Obtener todas las dependencias",
+        "tags": [
+          "Espacios Físicos"
+        ]
+      }
+    },
+    "/espacios-fisicos/dependencias/{id}": {
+      "get": {
+        "description": "Nombre de la dependencia y sedes a las que está asignada en Oikos. Sirve para precargar la sede a partir de la dependencia guardada en el contrato",
+        "operationId": "EspaciosFisicosController_obtenerDependencia",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Identificador de la dependencia",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dependencia obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "Success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "Status": {
+                      "type": "number",
+                      "example": 200
+                    },
+                    "Message": {
+                      "type": "string",
+                      "example": "Dependencia 20 obtenida exitosamente"
+                    },
+                    "Data": {
+                      "properties": {
+                        "id": {
+                          "type": "number",
+                          "example": 20
+                        },
+                        "nombre": {
+                          "type": "string",
+                          "example": "Facultad de Ingeniería"
+                        },
+                        "sedes": {
+                          "type": "array",
+                          "items": {
+                            "properties": {
+                              "id": {
+                                "type": "number",
+                                "example": 10
+                              },
+                              "nombre": {
+                                "type": "string",
+                                "example": "Sede Calle 40"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El id no es un número"
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "Success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "Status": {
+                      "type": "number",
+                      "example": 404
+                    },
+                    "Message": {
+                      "type": "string",
+                      "example": "No se encontró la dependencia con ID 20"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error al consultar Oikos"
+          }
+        },
+        "summary": "Obtener una dependencia",
         "tags": [
           "Espacios Físicos"
         ]
@@ -967,6 +1166,37 @@
   ],
   "servers": [],
   "components": {
-    "schemas": {}
+    "schemas": {
+      "RegistrarEstadoContratoDto": {
+        "type": "object",
+        "properties": {
+          "estado_parametro_id": {
+            "type": "number",
+            "example": 6774
+          },
+          "estado_interno_parametro_id": {
+            "type": "number",
+            "example": 6802
+          },
+          "usuario_id": {
+            "type": "number",
+            "example": 7
+          },
+          "usuario_rol": {
+            "type": "string",
+            "example": "JEFE_CONTRATACION_RECTOR"
+          },
+          "motivo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "estado_parametro_id",
+          "estado_interno_parametro_id",
+          "usuario_id",
+          "usuario_rol"
+        ]
+      }
+    }
   }
 }

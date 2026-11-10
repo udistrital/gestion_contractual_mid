@@ -45,6 +45,19 @@ export interface DependenciaSimple {
   nombre: string;
 }
 
+// Asignación de Oikos con el espacio físico; las de sede se cruzan con las sedes activas.
+export interface AsignacionDependenciaResponse {
+  Id?: number;
+  DependenciaId?: { Id: number; Nombre: string };
+  EspacioFisicoId?: { Id: number; Nombre?: string };
+}
+
+export interface DependenciaConSedes {
+  id: number;
+  nombre: string;
+  sedes: DependenciaSimple[];
+}
+
 export interface ContratoResponse {
   Status: string;
   Data: any;

@@ -29,6 +29,37 @@ paths:
       summary: Obtener amparos por ID de contrato
       tags:
         - amparos-contratos
+  /parametros:
+    get:
+      operationId: ParametrosController_obtenerParametrosPorTipo
+      parameters:
+        - name: ids
+          required: true
+          in: query
+          description: ID del/los tipo(s) de parámetro(s) solicitado(s) separados por coma
+          schema:
+            example: 137,141
+            type: string
+      responses:
+        '200':
+          description: Retorna los listados de parámetros solicitados.
+        '400':
+          description: Falta el parámetro ids o contiene valores no numéricos.
+        '500':
+          description: Error al consultar el servicio de parámetros.
+      summary: Retorna los parámetros de los tipos indicados por los IDs.
+      tags: &ref_0
+        - Parametros
+    delete:
+      operationId: ParametrosController_limpiarCacheParametros
+      parameters: []
+      responses:
+        '200':
+          description: Retorna el estado final de la solicitud.
+        '500':
+          description: Error al limpiar la caché.
+      summary: Limpia la memoria caché de los tipos de parámetro.
+      tags: *ref_0
   /cargue-masivo/especificaciones-tecnicas:
     post:
       operationId: CargueMasivoController_cargueMasivo
@@ -61,7 +92,7 @@ paths:
         '400':
           description: Error en la solicitud.
       summary: Retorna información de contrato-general por ID.
-      tags: &ref_0
+      tags: &ref_1
         - ContratoGeneral
   /contratos-generales:
     get:
@@ -106,7 +137,7 @@ paths:
         '200':
           description: Lista de contratos generales
       summary: Retorna información de contratos generales con filtros y paginación
-      tags: *ref_0
+      tags: *ref_1
   /contratos-generales/consecutivo:
     post:
       operationId: ContratoGeneralController_generarConsecutivo
@@ -117,9 +148,10 @@ paths:
         '500':
           description: Error interno del servidor
       summary: Generación de consecutivo del contrato
-      tags: *ref_0
+      tags: *ref_1
   /contratos-generales/numero-contrato:
     post:
+      deprecated: true
       operationId: ContratoGeneralController_generarNumeroContrato
       parameters: []
       responses:
@@ -127,8 +159,38 @@ paths:
           description: Número de contrato generado exitosamente
         '500':
           description: Error interno del servidor
-      summary: Generación de número de contrato
-      tags: *ref_0
+      summary: >-
+        Generación de número de contrato (obsoleto: usar POST
+        /contratos-generales/{id}/estados)
+      tags: *ref_1
+  /contratos-generales/{id}/estados:
+    post:
+      operationId: ContratoGeneralController_registrarEstado
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: Id del contrato general
+          schema: {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarEstadoContratoDto'
+      responses:
+        '201':
+          description: Estado registrado; Data = { estado, numero_contrato }
+        '400':
+          description: Cuerpo inválido, contrato sin vigencia o unidad sin prefijo
+        '404':
+          description: Contrato no encontrado
+        '409':
+          description: El número chocó dos veces con otro contrato
+      summary: >-
+        Registra un estado del contrato; al pasar a SUSCRITO asigna el número de
+        contrato
+      tags: *ref_1
   /contratos-generales/ids/separados:
     get:
       operationId: ContratoGeneralController_consultarContratosIdSeparados
@@ -174,37 +236,6 @@ paths:
       summary: >-
         Retorna información de contratos generales manteniendo los IDs
         originales
-      tags: *ref_0
-  /parametros:
-    get:
-      operationId: ParametrosController_obtenerParametrosPorTipo
-      parameters:
-        - name: ids
-          required: true
-          in: query
-          description: ID del/los tipo(s) de parámetro(s) solicitado(s) separados por coma
-          schema:
-            example: 137,141
-            type: string
-      responses:
-        '200':
-          description: Retorna los listados de parámetros solicitados.
-        '400':
-          description: Falta el parámetro ids o contiene valores no numéricos.
-        '500':
-          description: Error al consultar el servicio de parámetros.
-      summary: Retorna los parámetros de los tipos indicados por los IDs.
-      tags: &ref_1
-        - Parametros
-    delete:
-      operationId: ParametrosController_limpiarCacheParametros
-      parameters: []
-      responses:
-        '200':
-          description: Retorna el estado final de la solicitud.
-        '500':
-          description: Error al limpiar la caché.
-      summary: Limpia la memoria caché de los tipos de parámetro.
       tags: *ref_1
   /espacios-fisicos/sedes:
     get:
@@ -256,6 +287,110 @@ paths:
       summary: Obtener sedes
       tags: &ref_2
         - Espacios Físicos
+  /espacios-fisicos/dependencias:
+    get:
+      description: Dependencias activas de Oikos ordenadas por nombre, sin filtrar por sede
+      operationId: EspaciosFisicosController_obtenerTodasLasDependencias
+      parameters: []
+      responses:
+        '200':
+          description: Lista de dependencias obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                properties:
+                  Success:
+                    type: boolean
+                    example: true
+                  Status:
+                    type: number
+                    example: 200
+                  Message:
+                    type: string
+                    example: Dependencias obtenidas exitosamente
+                  Data:
+                    type: array
+                    items:
+                      properties:
+                        id:
+                          type: number
+                          example: 20
+                        nombre:
+                          type: string
+                          example: Facultad de Ingeniería
+        '500':
+          description: Error al consultar Oikos
+      summary: Obtener todas las dependencias
+      tags: *ref_2
+  /espacios-fisicos/dependencias/{id}:
+    get:
+      description: >-
+        Nombre de la dependencia y sedes a las que está asignada en Oikos. Sirve
+        para precargar la sede a partir de la dependencia guardada en el
+        contrato
+      operationId: EspaciosFisicosController_obtenerDependencia
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: Identificador de la dependencia
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Dependencia obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                properties:
+                  Success:
+                    type: boolean
+                    example: true
+                  Status:
+                    type: number
+                    example: 200
+                  Message:
+                    type: string
+                    example: Dependencia 20 obtenida exitosamente
+                  Data:
+                    properties:
+                      id:
+                        type: number
+                        example: 20
+                      nombre:
+                        type: string
+                        example: Facultad de Ingeniería
+                      sedes:
+                        type: array
+                        items:
+                          properties:
+                            id:
+                              type: number
+                              example: 10
+                            nombre:
+                              type: string
+                              example: Sede Calle 40
+        '400':
+          description: El id no es un número
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                properties:
+                  Success:
+                    type: boolean
+                    example: false
+                  Status:
+                    type: number
+                    example: 404
+                  Message:
+                    type: string
+                    example: No se encontró la dependencia con ID 20
+        '500':
+          description: Error al consultar Oikos
+      summary: Obtener una dependencia
+      tags: *ref_2
   /espacios-fisicos/dependencias-sede/{id}:
     get:
       description: Obtiene todas las dependencias asociadas a una sede específica
@@ -461,7 +596,7 @@ paths:
         '400':
           description: Parámetros inválidos (CRUD)
       summary: Consultar pólizas (reenvía a gestion_contractual_crud)
-      tags: &ref_2
+      tags: &ref_3
         - polizas
     post:
       operationId: PolizasController_crear
@@ -481,7 +616,7 @@ paths:
         '404':
           description: Contrato no encontrado (CRUD)
       summary: Crear póliza (reenvía a gestion_contractual_crud)
-      tags: *ref_2
+      tags: *ref_3
   /polizas/{id}:
     put:
       operationId: PolizasController_actualizar
@@ -507,7 +642,7 @@ paths:
         '404':
           description: Póliza no encontrada (CRUD)
       summary: Actualizar póliza (reenvía a gestion_contractual_crud)
-      tags: *ref_2
+      tags: *ref_3
   /amparos-polizas:
     get:
       operationId: AmparosPolizasController_consultar
@@ -551,7 +686,7 @@ paths:
         '400':
           description: Parámetros inválidos (CRUD)
       summary: Consultar amparos de pólizas (reenvía a gestion_contractual_crud)
-      tags: &ref_3
+      tags: &ref_4
         - amparos-polizas
     post:
       operationId: AmparosPolizasController_crear
@@ -573,7 +708,7 @@ paths:
         '400':
           description: Body inválido (CRUD)
       summary: Crear amparos en lote (reenvía a gestion_contractual_crud)
-      tags: *ref_3
+      tags: *ref_4
   /amparos-polizas/{id}:
     put:
       operationId: AmparosPolizasController_actualizar
@@ -601,7 +736,7 @@ paths:
       summary: >-
         Actualizar amparo o vincularlo a una póliza (reenvía a
         gestion_contractual_crud)
-      tags: *ref_3
+      tags: *ref_4
     delete:
       operationId: AmparosPolizasController_eliminar
       parameters:
@@ -619,7 +754,7 @@ paths:
         '404':
           description: Amparo no encontrado (CRUD)
       summary: Eliminar amparo, borrado lógico (reenvía a gestion_contractual_crud)
-      tags: *ref_3
+      tags: *ref_4
 info:
   title: Gestion Contractual API MID
   description: API
@@ -630,4 +765,26 @@ tags:
     description: ''
 servers: []
 components:
-  schemas: {}
+  schemas:
+    RegistrarEstadoContratoDto:
+      type: object
+      properties:
+        estado_parametro_id:
+          type: number
+          example: 6774
+        estado_interno_parametro_id:
+          type: number
+          example: 6802
+        usuario_id:
+          type: number
+          example: 7
+        usuario_rol:
+          type: string
+          example: JEFE_CONTRATACION_RECTOR
+        motivo:
+          type: string
+      required:
+        - estado_parametro_id
+        - estado_interno_parametro_id
+        - usuario_id
+        - usuario_rol
