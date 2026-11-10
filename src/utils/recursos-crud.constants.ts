@@ -1,4 +1,4 @@
-// Recursos del CRUD Beego v2. El prefijo v1 va en GESTION_CONTRACTUAL_CRUD_SERVICE.
+// Recursos del CRUD. El prefijo v1 va en GESTION_CONTRACTUAL_CRUD_SERVICE.
 export const RECURSOS_CRUD = {
   contratoGeneral: 'contratos-generales',
   estadoContrato: 'estados-contrato',

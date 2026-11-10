@@ -177,7 +177,7 @@ describe('ContratoGeneralService', () => {
     });
   });
 
-  describe('getContratoTransformed con el CRUD Beego v2', () => {
+  describe('getContratoTransformed con la respuesta del CRUD', () => {
     it('consulta contratos-generales y conserva la forma que usan los consumidores', async () => {
       crudGetMock.mockResolvedValue({
         data: {
@@ -235,10 +235,34 @@ describe('ContratoGeneralService', () => {
     });
   });
 
-  describe('conteos del CRUD Beego v2', () => {
-    const respuestaConteo = (Data: number) => ({
-      data: { Success: true, Status: '200', Data },
+  describe('conteos del CRUD', () => {
+    const respuestaConteo = (Data: number, Status: number | string = 200) => ({
+      data: { Success: true, Status, Data },
     });
+
+    it.each([200, '200'])(
+      'toma el conteo con Status %p del CRUD',
+      async (Status) => {
+        mockedAxios.post = jest
+          .fn()
+          .mockResolvedValue(respuestaConteo(4, Status));
+        await expect(
+          service.obtenerConteo({ vigencia_id: 9001 }, 'conteo-numero-contrato'),
+        ).resolves.toBe(4);
+      },
+    );
+
+    it.each([206, '400'])(
+      'con Status %p no toma el conteo',
+      async (Status) => {
+        mockedAxios.post = jest
+          .fn()
+          .mockResolvedValue(respuestaConteo(4, Status));
+        await expect(
+          service.obtenerConteo({ vigencia_id: 9001 }, 'conteo-numero-contrato'),
+        ).resolves.toBeNull();
+      },
+    );
 
     it('generarConsecutivo llama a la ruta nueva con unidad y vigencia como enteros', async () => {
       mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));

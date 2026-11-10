@@ -9,7 +9,7 @@ import axios, { AxiosInstance } from 'axios';
 import { EspaciosFisicosService } from '../espacios-fisicos/espacios-fisicos.service';
 import { firstValueFrom } from 'rxjs';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
-import { aQueryBeego } from '../utils/query-beego.utils';
+import { aQueryCrud } from '../utils/query-crud.utils';
 import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
 interface SupervisorResponse {
@@ -26,7 +26,7 @@ interface SupervisorCURD {
   cargo_id: number;
   documento: number;
   digito_verificacion: number;
-  // El CRUD v2 no guarda la sede (crud#51 3a1e5ab) y la dependencia es opcional.
+  // La sede no se guarda y la dependencia es opcional.
   dependencia_id: number | null;
   activo: boolean;
   fecha_creacion: string;
@@ -80,7 +80,7 @@ export class SupervisoresService {
           `${RECURSOS_CRUD.supervisor}/`,
           {
             params: {
-              ...aQueryBeego(
+              ...aQueryCrud(
                 { contrato_general_id: id, activo: true },
                 { sortBy: 'id', orderBy: 'asc' },
               ),

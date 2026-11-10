@@ -482,8 +482,8 @@ export class ContratoGeneralService {
     }
   }
 
-  // El CRUD Beego v2 renombró estos campos y entrega las columnas date con hora;
-  // el MF y minuta_contractual_mid siguen usando la forma del CRUD anterior.
+  // Forma del contrato que usan el MF y minuta_contractual_mid: renombra
+  // fecha_suscripcion_estudio y origen_presupuesto(_id) y deja las fechas sin hora.
   private aFormaConsumidores(contrato: any): any {
     const {
       fecha_suscripcion_estudio,
@@ -533,7 +533,8 @@ export class ContratoGeneralService {
       const url = `${base}/${RECURSOS_CRUD.contratoGeneral}/${endpoint}`;
       const { data } = await axios.post<any>(url, body);
 
-      if (!data.Success || data.Status != '200') {
+      // El CRUD responde Status como número en los éxitos y como texto en los errores.
+      if (!data.Success || Number(data.Status) !== 200) {
         return null;
       }
 

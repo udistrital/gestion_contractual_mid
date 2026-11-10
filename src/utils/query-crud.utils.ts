@@ -1,4 +1,4 @@
-// Llaves foráneas del CRUD Beego v2: se filtran por el id del objeto relacionado.
+// Llaves foráneas que el CRUD filtra por el id del objeto relacionado.
 const LLAVES_FORANEAS = ['contrato_general_id', 'poliza_id'];
 
 interface OrdenConsulta {
@@ -6,9 +6,9 @@ interface OrdenConsulta {
   orderBy?: string;
 }
 
-// Convierte un filtro y un orden al formato del CRUD Beego v2:
+// Convierte un filtro y un orden al formato de consulta del CRUD:
 // query=campo:valor,campo:valor&sortby=campo&order=asc|desc
-export const aQueryBeego = (
+export const aQueryCrud = (
   filtro: Record<string, unknown> = {},
   { sortBy, orderBy }: OrdenConsulta = {},
 ): Record<string, string> => {

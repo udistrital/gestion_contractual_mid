@@ -8,7 +8,7 @@ import { EspaciosFisicosModule } from './../src/espacios-fisicos/espacios-fisico
 import { SupervisoresModule } from './../src/supervisor/supervisores.module';
 
 // e2e sin red real: GET /espacios-fisicos/dependencias/{id} y GET /supervisores/contrato/{id}
-// con Oikos, el CRUD Beego v2 y el MID de ordenadores y supervisores simulados con nock.
+// con Oikos, el CRUD y el MID de ordenadores y supervisores simulados con nock.
 const OIKOS = 'http://oikos.test';
 const CRUD = 'http://crud.test/v1';
 const SUPERVISORES_MID = 'http://supervisores.test';
@@ -237,7 +237,7 @@ describe('Espacios físicos y supervisores (e2e con nock)', () => {
           ],
         });
 
-    it('usa la ruta del CRUD Beego y toma la sede de la dependencia si tiene una sola', async () => {
+    it('consulta los supervisores en el CRUD y toma la sede de la dependencia si tiene una sola', async () => {
       const crud = crudSupervisores([supervisor()]);
       supervisoresMid();
       oikosDependencia(20, [asignacion(10)]);

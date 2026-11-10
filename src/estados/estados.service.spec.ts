@@ -157,7 +157,7 @@ describe('EstadosService', () => {
     );
   });
 
-  it('consulta estados-contrato con el filtro y el orden del CRUD Beego v2', async () => {
+  it('consulta estados-contrato con el filtro y el orden del CRUD', async () => {
     crudGetMock.mockResolvedValue({ data: { Data: [] } });
     getParametrosIndexados.mockResolvedValue(crearParametrosIndexados());
 
@@ -178,7 +178,7 @@ describe('EstadosService', () => {
     });
   });
 
-  it('entrega solo el id del contrato anidado por el CRUD Beego v2', async () => {
+  it('entrega solo el id del contrato anidado por el CRUD', async () => {
     crudGetMock.mockResolvedValue({
       data: {
         Data: [

@@ -174,8 +174,8 @@ export class ContratoGeneralController {
   }
 
   /**
-   * @deprecated Lo usa el MF de develop (mf#144) hasta el despliegue del CRUD Beego.
-   * El número lo asigna ahora POST /contratos-generales/{id}/estados al pasar a SUSCRITO.
+   * @deprecated Se conserva para los clientes que aún lo llaman.
+   * El número lo asigna POST /contratos-generales/{id}/estados al pasar a SUSCRITO.
    */
   @Post('numero-contrato')
   @ApiOperation({
