@@ -8,7 +8,7 @@ import { AxiosInstance } from 'axios';
 import { StandardResponse } from '../interfaces/responses.interface';
 import { ParametroService } from 'src/parametro/parametro.service';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
-import { aFormaAnterior, aQueryBeego } from '../utils/query-beego.utils';
+import { aFormaConsumidores, aQueryCrud } from '../utils/query-crud.utils';
 import { ConfigService } from '@nestjs/config';
 import { RECURSOS_CRUD } from '../utils/recursos-crud.constants';
 
@@ -36,7 +36,7 @@ export class AmparosContratosService {
       const amparosResponse = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<StandardResponse<any>>(RECURSOS_CRUD.amparoPoliza, {
           params: {
-            ...aQueryBeego({ contrato_general_id: contratoId, activo: true }),
+            ...aQueryCrud({ contrato_general_id: contratoId, activo: true }),
             limit: 0,
           },
         }),
@@ -54,7 +54,7 @@ export class AmparosContratosService {
       );
 
       return amparos.map((amparo: any) => ({
-        ...aFormaAnterior(amparo),
+        ...aFormaConsumidores(amparo),
         amparo: amparosMap.get(this.tipoParametroAmparos)?.get(amparo.amparo_id)?.Nombre ?? null,
       }));
     } catch (error) {

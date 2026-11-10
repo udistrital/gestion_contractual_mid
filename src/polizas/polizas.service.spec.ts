@@ -61,7 +61,7 @@ describe('PolizasService', () => {
     );
   });
 
-  it('consultar: traduce filtro y orden, y devuelve la forma anterior', async () => {
+  it('consultar: traduce filtro y orden, y devuelve la forma de los consumidores', async () => {
     requestMock.mockResolvedValue({
       status: 200,
       data: {

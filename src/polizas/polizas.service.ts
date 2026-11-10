@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { createAxiosInstance, fetchWithRetry } from 'src/utils/axios-utils';
 import {
-  aCuerpoBeego,
-  aFormaAnterior,
-  aQueryBeego,
-} from '../utils/query-beego.utils';
+  aCuerpoCrud,
+  aFormaConsumidores,
+  aQueryCrud,
+} from '../utils/query-crud.utils';
 
 export interface RespuestaCrud {
   status: number;
@@ -14,8 +14,8 @@ export interface RespuestaCrud {
 }
 
 // Intermediario entre el MF y gestion_contractual_crud para pólizas y amparos
-// (#360). Traduce filtro, cuerpo y respuesta al CRUD Beego v2 (#397), para que
-// el MF y minuta_contractual_mid conserven el contrato que tenían con el CRUD.
+// (#360). Traduce filtro, cuerpo y respuesta entre la forma que usan el MF y
+// minuta_contractual_mid y la del CRUD.
 @Injectable()
 export class PolizasService {
   private readonly logger = new Logger(PolizasService.name);
@@ -35,7 +35,7 @@ export class PolizasService {
         method: 'GET',
         url: ruta,
         params: {
-          ...aQueryBeego(this.leerFiltro(query), { sortBy, orderBy }),
+          ...aQueryCrud(this.leerFiltro(query), { sortBy, orderBy }),
           limit,
           offset,
         },
@@ -48,12 +48,12 @@ export class PolizasService {
     return this.reenviar({
       method: 'POST',
       url: ruta,
-      data: aCuerpoBeego(body),
+      data: aCuerpoCrud(body),
     });
   }
 
-  // El CRUD Beego registra de a uno. Se conserva la respuesta del CRUD anterior:
-  // Status 201 con los creados, o Status 206 con { creados, errores } si falla una parte.
+  // El CRUD registra de a uno. Responde Status 201 con los creados, o Status 206
+  // con { creados, errores } si falla una parte.
   async crearAmparos(ruta: string, amparos: any): Promise<RespuestaCrud> {
     if (!Array.isArray(amparos)) {
       throw new HttpException(
@@ -111,7 +111,7 @@ export class PolizasService {
     return this.reenviar({
       method: 'PUT',
       url: `${ruta}/${id}`,
-      data: aCuerpoBeego(body),
+      data: aCuerpoCrud(body),
     });
   }
 
@@ -136,16 +136,16 @@ export class PolizasService {
     }
   }
 
-  // El CRUD Beego v2 responde Status como texto; el MF lo espera como número.
-  private aRespuestaAnterior(cuerpo: any): any {
+  // El MF espera Status como número.
+  private aRespuestaConsumidores(cuerpo: any): any {
     const { Data, Status } = cuerpo;
     return {
       ...cuerpo,
       ...(Status !== undefined && { Status: Number(Status) }),
       Data: Array.isArray(Data)
-        ? Data.map(aFormaAnterior)
+        ? Data.map(aFormaConsumidores)
         : Data && typeof Data === 'object'
-          ? aFormaAnterior(Data)
+          ? aFormaConsumidores(Data)
           : Data,
     };
   }
@@ -165,7 +165,7 @@ export class PolizasService {
 
       return {
         status: response.status,
-        body: this.aRespuestaAnterior(response.data),
+        body: this.aRespuestaConsumidores(response.data),
       };
     } catch (error) {
       // Error HTTP del CRUD (400, 404, 500...): se propaga tal cual.

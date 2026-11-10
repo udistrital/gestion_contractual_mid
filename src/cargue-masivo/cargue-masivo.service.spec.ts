@@ -20,7 +20,7 @@ describe('CargueMasivoService', () => {
     expect(service).toBeDefined();
   });
 
-  it('apunta al CRUD Beego v2 y envía el contrato como { id }', () => {
+  it('apunta al CRUD y envía el contrato como { id }', () => {
     const estructura = service.crearEstructura('YmFzZTY0', {
       contrato_general_id: 7,
     });

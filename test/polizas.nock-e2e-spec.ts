@@ -6,13 +6,13 @@ import nock from 'nock';
 import { PolizasModule } from './../src/polizas/polizas.module';
 
 // e2e sin red real: controllers + service + axios reales, gestion_contractual_crud
-// simulado con nock. Verifica que el MID traduce rutas, filtros y cuerpos al CRUD
-// Beego v2 (#397) y conserva la forma de respuesta que usan sus consumidores.
+// simulado con nock. Verifica que el MID traduce rutas, filtros y cuerpos al
+// formato del CRUD y conserva la forma de respuesta que usan sus consumidores.
 const CRUD = 'http://crud.test/v1';
 
 const filtroContrato = (contratoId: number) =>
   JSON.stringify({ contrato_general_id: contratoId, activo: true });
-const queryBeego = (contratoId: number) =>
+const queryCrud = (contratoId: number) =>
   `contrato_general_id.id:${contratoId},activo:true`;
 
 describe('Pólizas y amparos-polizas (e2e con nock)', () => {
@@ -49,7 +49,7 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
   });
 
   describe('polizas', () => {
-    it('GET 200: traduce el filtro y devuelve la forma anterior', async () => {
+    it('GET 200: traduce el filtro y devuelve la forma de los consumidores', async () => {
       const body = {
         Success: true,
         Status: '200',
@@ -65,7 +65,7 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
       };
       const crud = nock(CRUD)
         .get('/polizas')
-        .query({ query: queryBeego(10), limit: '1' })
+        .query({ query: queryCrud(10), limit: '1' })
         .reply(200, body);
 
       const res = await request(app.getHttpServer())
@@ -149,7 +149,7 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
       const crud = nock(CRUD)
         .get('/amparos-polizas')
         .query({
-          query: queryBeego(10),
+          query: queryCrud(10),
           limit: '0',
           sortby: 'id',
           order: 'asc',
@@ -170,7 +170,7 @@ describe('Pólizas y amparos-polizas (e2e con nock)', () => {
       expect(crud.isDone()).toBe(true);
     });
 
-    it('POST en lote: sigue en la ruta anterior, sin traducir el arreglo', async () => {
+    it('POST en lote: registra los amparos de a uno y responde Status 206 si alguno falla', async () => {
       const amparos = [
         { contrato_general_id: 10, amparo_id: 6602 },
         { contrato_general_id: 10, amparo_id: 0 },

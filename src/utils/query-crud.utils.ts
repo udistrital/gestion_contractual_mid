@@ -1,7 +1,7 @@
-// Llaves foráneas del CRUD Beego v2: se filtran por el id del objeto relacionado.
+// Llaves foráneas que el CRUD filtra por el id del objeto relacionado.
 const LLAVES_FORANEAS = ['contrato_general_id', 'poliza_id'];
 
-// Columnas date de póliza y amparo: el CRUD Beego v2 las entrega con hora.
+// Columnas date de póliza y amparo: el CRUD las entrega con hora.
 const COLUMNAS_FECHA = [
   'fecha_inicio',
   'fecha_fin',
@@ -14,9 +14,9 @@ interface OrdenConsulta {
   orderBy?: string;
 }
 
-// Convierte un filtro y un orden al formato del CRUD Beego v2:
+// Convierte un filtro y un orden al formato de consulta del CRUD:
 // query=campo:valor,campo:valor&sortby=campo&order=asc|desc
-export const aQueryBeego = (
+export const aQueryCrud = (
   filtro: Record<string, unknown> = {},
   { sortBy, orderBy }: OrdenConsulta = {},
 ): Record<string, string> => {
@@ -35,9 +35,9 @@ export const aQueryBeego = (
   };
 };
 
-// El CRUD Beego v2 recibe las llaves foráneas como { id }. Los arreglos no se
-// tocan: el registro en lote sigue en la ruta anterior.
-export const aCuerpoBeego = (cuerpo: any): any => {
+// El CRUD recibe las llaves foráneas como { id }. Los arreglos se devuelven
+// sin cambios.
+export const aCuerpoCrud = (cuerpo: any): any => {
   if (!cuerpo || Array.isArray(cuerpo)) return cuerpo;
 
   const resultado = { ...cuerpo };
@@ -50,9 +50,9 @@ export const aCuerpoBeego = (cuerpo: any): any => {
   return resultado;
 };
 
-// Devuelve un registro del CRUD Beego v2 en la forma que siguen usando el MF y
+// Devuelve un registro del CRUD en la forma que usan el MF y
 // minuta_contractual_mid: llaves foráneas como id y fechas sin hora.
-export const aFormaAnterior = (registro: any): any => {
+export const aFormaConsumidores = (registro: any): any => {
   const resultado = { ...registro };
   LLAVES_FORANEAS.forEach((campo) => {
     if (resultado[campo]?.id !== undefined) {

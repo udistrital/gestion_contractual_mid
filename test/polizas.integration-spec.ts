@@ -47,7 +47,7 @@ describeIf('Pólizas y amparos-polizas vía MID (integración real)', () => {
         contrato_general_id: CONTRATO_ID,
         numero_poliza: `INT-MID-${Date.now()}`.slice(0, 50),
         entidad_aseguradora_id: 1,
-        // Como las envía el MF: el CRUD Beego exige RFC3339.
+        // Como las envía el MF: el CRUD exige RFC3339.
         fecha_inicio: '2026-01-01T05:00:00.000Z',
         fecha_fin: '2026-12-31T05:00:00.000Z',
         fecha_expedicion: '2026-01-01T05:00:00.000Z',

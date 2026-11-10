@@ -1,37 +1,37 @@
 import {
-  aCuerpoBeego,
-  aFormaAnterior,
-  aQueryBeego,
-} from './query-beego.utils';
+  aCuerpoCrud,
+  aFormaConsumidores,
+  aQueryCrud,
+} from './query-crud.utils';
 
-describe('aQueryBeego', () => {
+describe('aQueryCrud', () => {
   it('une los filtros en formato campo:valor', () => {
-    expect(aQueryBeego({ activo: true, tipo_documento_id: 6805 })).toEqual({
+    expect(aQueryCrud({ activo: true, tipo_documento_id: 6805 })).toEqual({
       query: 'activo:true,tipo_documento_id:6805',
     });
   });
 
   it('filtra las llaves foráneas por su id', () => {
-    expect(aQueryBeego({ contrato_general_id: 7, poliza_id: 2 })).toEqual({
+    expect(aQueryCrud({ contrato_general_id: 7, poliza_id: 2 })).toEqual({
       query: 'contrato_general_id.id:7,poliza_id.id:2',
     });
   });
 
   it('traduce el orden y pasa la dirección a minúscula', () => {
     expect(
-      aQueryBeego({}, { sortBy: 'fecha_creacion', orderBy: 'DESC' }),
+      aQueryCrud({}, { sortBy: 'fecha_creacion', orderBy: 'DESC' }),
     ).toEqual({ sortby: 'fecha_creacion', order: 'desc' });
   });
 
   it('omite lo que no se envía', () => {
-    expect(aQueryBeego()).toEqual({});
+    expect(aQueryCrud()).toEqual({});
   });
 });
 
-describe('aCuerpoBeego', () => {
+describe('aCuerpoCrud', () => {
   it('envía las llaves foráneas como { id }', () => {
     expect(
-      aCuerpoBeego({ contrato_general_id: 7, poliza_id: '2', valor: 10 }),
+      aCuerpoCrud({ contrato_general_id: 7, poliza_id: '2', valor: 10 }),
     ).toEqual({
       contrato_general_id: { id: 7 },
       poliza_id: { id: 2 },
@@ -41,22 +41,22 @@ describe('aCuerpoBeego', () => {
 
   it('conserva null y las llaves que ya vienen como objeto', () => {
     expect(
-      aCuerpoBeego({ poliza_id: null, contrato_general_id: { id: 7 } }),
+      aCuerpoCrud({ poliza_id: null, contrato_general_id: { id: 7 } }),
     ).toEqual({ poliza_id: null, contrato_general_id: { id: 7 } });
   });
 
   it('no toca los arreglos ni un cuerpo vacío', () => {
     const lote = [{ contrato_general_id: 7 }];
 
-    expect(aCuerpoBeego(lote)).toBe(lote);
-    expect(aCuerpoBeego(undefined)).toBeUndefined();
+    expect(aCuerpoCrud(lote)).toBe(lote);
+    expect(aCuerpoCrud(undefined)).toBeUndefined();
   });
 });
 
-describe('aFormaAnterior', () => {
+describe('aFormaConsumidores', () => {
   it('reduce las llaves foráneas a su id y las fechas a YYYY-MM-DD', () => {
     expect(
-      aFormaAnterior({
+      aFormaConsumidores({
         id: 1,
         contrato_general_id: { id: 7, numero_contrato: null },
         poliza_id: { id: 2 },
@@ -73,6 +73,6 @@ describe('aFormaAnterior', () => {
   });
 
   it('conserva poliza_id en null', () => {
-    expect(aFormaAnterior({ poliza_id: null })).toEqual({ poliza_id: null });
+    expect(aFormaConsumidores({ poliza_id: null })).toEqual({ poliza_id: null });
   });
 });

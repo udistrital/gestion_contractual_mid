@@ -504,7 +504,8 @@ export class ContratoGeneralService {
       const url = `${urlGestionContractualCrud}contratos-generales/${endpoint}/`;
       const { data } = await axios.post<any>(url, body);
 
-      if (!data.Success || data.Status != '200') {
+      // El CRUD responde Status como número en los éxitos y como texto en los errores.
+      if (!data.Success || Number(data.Status) !== 200) {
         return null;
       }
 
