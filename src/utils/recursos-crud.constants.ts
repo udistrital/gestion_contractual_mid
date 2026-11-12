@@ -7,4 +7,5 @@ export const RECURSOS_CRUD = {
   amparoPoliza: 'amparos-polizas',
   especificacionTecnica: 'especificaciones-tecnicas',
   supervisor: 'supervisores',
+  tablerosContratos: 'tableros/contratos',
 } as const;
