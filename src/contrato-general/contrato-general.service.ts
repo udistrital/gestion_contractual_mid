@@ -599,8 +599,8 @@ export class ContratoGeneralService {
         throw new Error('El campo estado es requerido');
       }
 
-      const { prefijo, sufijo } = datos[unidad_ejecutora_id];
-      if (prefijo == null || sufijo == null) {
+      const formato = await this.obtenerFormatoNumero(Number(unidad_ejecutora_id));
+      if (!formato || formato.prefijo == null || formato.sufijo == null) {
         throw new Error('Unidad ejecutora invalida');
       }
 
@@ -609,12 +609,41 @@ export class ContratoGeneralService {
         vigenciaId,
         Number(estado),
       );
-      return prefijo + (conteo + 1) + sufijo;
+      return formato.prefijo + (conteo + 1) + formato.sufijo;
     } catch (error: any) {
       throw new InternalServerErrorException(
         `Error al generar número de contrato: ${error.message}`,
       );
     }
+  }
+
+  async obtenerFormatoNumero(
+    unidadEjecutoraId: number,
+  ): Promise<{ prefijo: string; sufijo: string }> {
+    const id = Number(unidadEjecutoraId);
+    if (datos[id] && datos[id].prefijo != null && datos[id].sufijo != null) {
+      return datos[id];
+    }
+
+    try {
+      const mapaParametros = await this.parametrosCrud.getParametrosIndexados([
+        String(this.parameterMap.unidad_ejecutora_id),
+      ]);
+      const unidadesMap = mapaParametros?.get(this.parameterMap.unidad_ejecutora_id);
+      const parametro = unidadesMap?.get(id);
+
+      if (parametro) {
+        const codigo = (parametro.CodigoAbreviacion || '').trim();
+        const prefijo = codigo ? (codigo.endsWith('-') ? codigo : `${codigo}-`) : '';
+        return { prefijo, sufijo: '' };
+      }
+    } catch (error: any) {
+      this.logger.warn(
+        `Error al consultar parámetro de la unidad ejecutora ${id}: ${error.message}`,
+      );
+    }
+
+    return null as any;
   }
 
   // Contratos de la unidad y la vigencia que tienen o tuvieron el estado.
@@ -676,7 +705,7 @@ export class ContratoGeneralService {
         'El contrato no tiene vigencia_id: no se puede asignar el número de contrato',
       );
     }
-    const formato = datos[unidad];
+    const formato = await this.obtenerFormatoNumero(unidad);
     if (!formato) {
       throw this.solicitudInvalida(
         `La unidad ejecutora ${unidad} no tiene prefijo de número de contrato`,
