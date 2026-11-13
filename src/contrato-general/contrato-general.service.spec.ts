@@ -466,6 +466,32 @@ describe('ContratoGeneralService', () => {
       });
     });
 
+    it('responde 400 si la unidad existe en Parámetros pero no tiene CodigoAbreviacion', async () => {
+      const mapaConUnidadSinCodigo = crearParametrosIndexados();
+      mapaConUnidadSinCodigo.set(
+        146,
+        new Map([
+          [
+            6825,
+            {
+              Id: 6825,
+              Nombre: 'Unidad Sin Abreviacion',
+              Descripcion: '',
+              CodigoAbreviacion: '',
+            },
+          ],
+        ]),
+      );
+      getParametrosIndexados.mockResolvedValue(mapaConUnidadSinCodigo);
+      crudGetMock.mockResolvedValue(contrato({ unidad_ejecutora_id: 6825 }));
+
+      await expect(service.registrarEstado(42, cambio)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(crudPutMock).not.toHaveBeenCalled();
+      expect(crudPostMock).not.toHaveBeenCalled();
+    });
+
     it.each([
       ['sin vigencia_id', { vigencia_id: null }],
       ['con una unidad sin prefijo', { unidad_ejecutora_id: 9999 }],

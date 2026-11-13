@@ -619,7 +619,7 @@ export class ContratoGeneralService {
 
   async obtenerFormatoNumero(
     unidadEjecutoraId: number,
-  ): Promise<{ prefijo: string; sufijo: string }> {
+  ): Promise<{ prefijo: string; sufijo: string } | null> {
     const id = Number(unidadEjecutoraId);
     if (datos[id] && datos[id].prefijo != null && datos[id].sufijo != null) {
       return datos[id];
@@ -634,7 +634,12 @@ export class ContratoGeneralService {
 
       if (parametro) {
         const codigo = (parametro.CodigoAbreviacion || '').trim();
-        const prefijo = codigo ? (codigo.endsWith('-') ? codigo : `${codigo}-`) : '';
+        if (!codigo) {
+          // Sin código de abreviación no se puede asignar prefijo diferenciado,
+          // evitando colisiones con la numeración de Rectoría en la misma vigencia.
+          return null;
+        }
+        const prefijo = codigo.endsWith('-') ? codigo : `${codigo}-`;
         return { prefijo, sufijo: '' };
       }
     } catch (error: any) {
@@ -643,7 +648,7 @@ export class ContratoGeneralService {
       );
     }
 
-    return null as any;
+    return null;
   }
 
   // Contratos de la unidad y la vigencia que tienen o tuvieron el estado.
