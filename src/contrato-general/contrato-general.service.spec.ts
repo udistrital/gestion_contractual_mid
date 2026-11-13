@@ -295,6 +295,34 @@ describe('ContratoGeneralService', () => {
       );
     });
 
+    it('generarNumeroContrato resuelve el prefijo dinámicamente desde Parámetros para unidades dinámicas', async () => {
+      mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));
+      const mapaConUnidadDinamica = crearParametrosIndexados();
+      mapaConUnidadDinamica.set(
+        146,
+        new Map([
+          [
+            6820,
+            {
+              Id: 6820,
+              Nombre: 'Facultad de Artes',
+              Descripcion: '',
+              CodigoAbreviacion: 'FAG',
+            },
+          ],
+        ]),
+      );
+      getParametrosIndexados.mockResolvedValue(mapaConUnidadDinamica);
+
+      const numero = await service.generarNumeroContrato({
+        unidad_ejecutora_id: '6820',
+        vigencia_id: '9001',
+        estado: '6774',
+      });
+
+      expect(numero).toBe('FAG-5');
+    });
+
     it('arma la ruta del conteo con la base que termina en /v1, sin barra final', async () => {
       mockedAxios.post = jest.fn().mockResolvedValue(respuestaConteo(4));
       (service as any).configService.get = () => 'http://test/v1';
@@ -409,6 +437,59 @@ describe('ContratoGeneralService', () => {
       expect(mockedAxios.post).not.toHaveBeenCalled();
       expect(crudPutMock).not.toHaveBeenCalled();
       expect(crudPostMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('al pasar a SUSCRITO con una unidad dinámica, resuelve el prefijo desde Parámetros', async () => {
+      const mapaConUnidad = crearParametrosIndexados();
+      mapaConUnidad.set(
+        146,
+        new Map([
+          [
+            6820,
+            {
+              Id: 6820,
+              Nombre: 'Facultad de Artes',
+              Descripcion: '',
+              CodigoAbreviacion: 'FAG',
+            },
+          ],
+        ]),
+      );
+      getParametrosIndexados.mockResolvedValue(mapaConUnidad);
+
+      crudGetMock.mockResolvedValue(contrato({ unidad_ejecutora_id: 6820 }));
+      const resultado = await service.registrarEstado(42, cambio);
+
+      expect(resultado.numero_contrato).toBe('FAG-3');
+      expect(crudPutMock).toHaveBeenCalledWith('contratos-generales/42', {
+        numero_contrato: 'FAG-3',
+      });
+    });
+
+    it('responde 400 si la unidad existe en Parámetros pero no tiene CodigoAbreviacion', async () => {
+      const mapaConUnidadSinCodigo = crearParametrosIndexados();
+      mapaConUnidadSinCodigo.set(
+        146,
+        new Map([
+          [
+            6825,
+            {
+              Id: 6825,
+              Nombre: 'Unidad Sin Abreviacion',
+              Descripcion: '',
+              CodigoAbreviacion: '',
+            },
+          ],
+        ]),
+      );
+      getParametrosIndexados.mockResolvedValue(mapaConUnidadSinCodigo);
+      crudGetMock.mockResolvedValue(contrato({ unidad_ejecutora_id: 6825 }));
+
+      await expect(service.registrarEstado(42, cambio)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(crudPutMock).not.toHaveBeenCalled();
+      expect(crudPostMock).not.toHaveBeenCalled();
     });
 
     it.each([
