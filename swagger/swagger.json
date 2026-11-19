@@ -1150,6 +1150,39 @@
           "amparos-polizas"
         ]
       }
+    },
+    "/tableros/contratos": {
+      "get": {
+        "description": "Metadatos de seguimiento por contrato activo: estado general actual, fecha desde la que está en ese estado, fecha final, dependencia solicitante y abogado (solo Ids), desde el CRUD",
+        "operationId": "TablerosController_getContratos",
+        "parameters": [
+          {
+            "name": "vigencia_id",
+            "required": false,
+            "in": "query",
+            "description": "Id del parámetro de vigencia (contrato_general.vigencia_id); sin él trae todas las vigencias",
+            "schema": {
+              "example": 6900,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contratos consultados exitosamente"
+          },
+          "400": {
+            "description": "Filtro inválido"
+          },
+          "500": {
+            "description": "Error al consultar el CRUD"
+          }
+        },
+        "summary": "Contratos del tablero de control",
+        "tags": [
+          "Tableros"
+        ]
+      }
     }
   },
   "info": {

@@ -14,6 +14,7 @@ import { OrdenadoresModule } from './ordenador/ordenadores.module';
 import { SupervisoresModule } from './supervisor/supervisores.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { PolizasModule } from './polizas/polizas.module';
+import { TablerosModule } from './tableros/tableros.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PolizasModule } from './polizas/polizas.module';
     OrdenadoresModule,
     SupervisoresModule,
     PolizasModule,
+    TablerosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
