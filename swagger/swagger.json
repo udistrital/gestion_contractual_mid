@@ -244,22 +244,28 @@
             "description": "Error interno del servidor"
           }
         },
-        "summary": "Generación de número de contrato (obsoleto: usar POST /contratos-generales/{id}/estados)",
+        "summary": "Generación de número de contrato (obsoleto: usar POST /contratos-generales/estados)",
         "tags": [
           "ContratoGeneral"
         ]
       }
     },
-    "/contratos-generales/{id}/estados": {
+    "/contratos-generales/estados": {
       "post": {
         "operationId": "ContratoGeneralController_registrarEstado",
         "parameters": [
           {
-            "name": "id",
+            "name": "contrato-id",
             "required": true,
-            "in": "path",
+            "in": "query",
             "description": "Id del contrato general",
-            "schema": {}
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 2147483647,
+              "example": 42
+            }
           }
         ],
         "requestBody": {
@@ -277,7 +283,7 @@
             "description": "Estado registrado; Data = { estado, numero_contrato }"
           },
           "400": {
-            "description": "Cuerpo inválido, contrato sin vigencia o unidad sin prefijo"
+            "description": "contrato-id ausente o inválido, cuerpo inválido, contrato sin vigencia o unidad sin prefijo"
           },
           "404": {
             "description": "Contrato no encontrado"
