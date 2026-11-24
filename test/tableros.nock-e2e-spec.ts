@@ -88,8 +88,8 @@ describe('GET /tableros/contratos (e2e con nock)', () => {
         .get(`/tableros/contratos?vigencia-id=${valor}`)
         .expect(400);
 
-      expect(JSON.stringify(res.body)).toContain(
-        'vigencia-id debe ser un entero positivo',
+      expect(JSON.stringify(res.body)).toMatch(
+        /vigencia-id debe ser (un número entero|mayor o igual a 1)/,
       );
       expect(crud.isDone()).toBe(false);
     },

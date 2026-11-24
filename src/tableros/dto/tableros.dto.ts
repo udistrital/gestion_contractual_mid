@@ -2,8 +2,6 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { IsInt, IsOptional, Min } from 'class-validator';
 
-const VIGENCIA_ID_INVALIDA = 'vigencia-id debe ser un entero positivo';
-
 // En la URL el parámetro se llama vigencia-id (guion, nunca guion bajo).
 export class ContratosTableroQueryDto {
   @ApiPropertyOptional({
@@ -15,7 +13,7 @@ export class ContratosTableroQueryDto {
   @Expose({ name: 'vigencia-id' })
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: VIGENCIA_ID_INVALIDA })
-  @Min(1, { message: VIGENCIA_ID_INVALIDA })
+  @IsInt({ message: 'vigencia-id debe ser un número entero' })
+  @Min(1, { message: 'vigencia-id debe ser mayor o igual a 1' })
   vigenciaId?: number;
 }
