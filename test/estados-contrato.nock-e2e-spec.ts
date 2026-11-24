@@ -194,7 +194,7 @@ describe('POST /contratos-generales/estados?contrato-id= (e2e con nock)', () => 
       Success: false,
       Status: 400,
       Message:
-        "El parámetro de consulta 'contrato-id' es obligatorio y debe ser un entero entre 1 y 2147483647",
+        'El id del contrato es obligatorio y debe ser un entero positivo',
       Data: null,
     };
 
