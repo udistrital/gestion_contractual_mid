@@ -25,7 +25,7 @@ export class TablerosService {
       const response = await fetchWithRetry(() =>
         this.gestionContractualCrud.get<StandardResponse<any[]>>(
           RECURSOS_CRUD.tablerosContratos,
-          { params: { vigencia_id: query.vigencia_id } },
+          { params: { 'vigencia-id': query.vigenciaId } },
         ),
       );
       // Sin contratos el CRUD responde Data: []; otra forma es una falla, no un tablero vacío
