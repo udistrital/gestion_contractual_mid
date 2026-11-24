@@ -6,7 +6,7 @@ export const CONTRATO_ID_MAXIMO = 2147483647;
 export const MENSAJE_CONTRATO_ID_INVALIDO =
   'El id del contrato es obligatorio y debe ser un entero positivo';
 
-// Lee el parámetro de consulta obligatorio `contrato-id`: entero en base 10,
+// Lee el parámetro de consulta obligatorio `contrato_id`: entero en base 10,
 // sin signo, espacios, decimales ni notación científica o hexadecimal.
 export class ContratoIdPipe implements PipeTransform<unknown, number> {
   transform(valor: unknown): number {

@@ -176,7 +176,7 @@ export class ContratoGeneralController {
 
   /**
    * @deprecated Se conserva para los clientes que aún lo llaman.
-   * El número lo asigna POST /contratos-generales/estados?contrato-id= al pasar a SUSCRITO.
+   * El número lo asigna POST /contratos-generales/estados?contrato_id= al pasar a SUSCRITO.
    */
   @Post('numero-contrato')
   @ApiOperation({
@@ -230,7 +230,7 @@ export class ContratoGeneralController {
       'Registra un estado del contrato; al pasar a SUSCRITO asigna el número de contrato',
   })
   @ApiQuery({
-    name: 'contrato-id',
+    name: 'contrato_id',
     required: true,
     description: 'Id del contrato general',
     schema: {
@@ -246,12 +246,12 @@ export class ContratoGeneralController {
   @ApiResponse({
     status: 400,
     description:
-      'contrato-id ausente o inválido, cuerpo inválido, contrato sin vigencia o unidad sin prefijo',
+      'contrato_id ausente o inválido, cuerpo inválido, contrato sin vigencia o unidad sin prefijo',
   })
   @ApiResponse({ status: 404, description: 'Contrato no encontrado' })
   @ApiResponse({ status: 409, description: 'El número chocó dos veces con otro contrato' })
   async registrarEstado(
-    @Query('contrato-id', ContratoIdPipe) contratoId: number,
+    @Query('contrato_id', ContratoIdPipe) contratoId: number,
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
     body: RegistrarEstadoContratoDto,
   ): Promise<StandardResponse<any>> {
