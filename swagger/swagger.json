@@ -1163,7 +1163,7 @@
         "operationId": "TablerosController_getContratos",
         "parameters": [
           {
-            "name": "vigencia_id",
+            "name": "vigencia-id",
             "required": false,
             "in": "query",
             "description": "Id del parámetro de vigencia (contrato_general.vigencia_id); sin él trae todas las vigencias",

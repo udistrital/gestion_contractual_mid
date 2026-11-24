@@ -770,7 +770,7 @@ paths:
         solicitante y abogado (solo Ids), desde el CRUD
       operationId: TablerosController_getContratos
       parameters:
-        - name: vigencia_id
+        - name: vigencia-id
           required: false
           in: query
           description: >-
