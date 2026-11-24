@@ -48,7 +48,7 @@ describe('TablerosService', () => {
     getMock.mockResolvedValue({ data: { Success: true, Data: [contrato] } });
 
     await expect(
-      controller.getContratos({ vigencia_id: 6900 }),
+      controller.getContratos({ vigenciaId: 6900 }),
     ).resolves.toEqual({
       Success: true,
       Status: 200,
@@ -56,7 +56,7 @@ describe('TablerosService', () => {
       Data: [contrato],
     });
     expect(getMock).toHaveBeenCalledWith('tableros/contratos', {
-      params: { vigencia_id: 6900 },
+      params: { 'vigencia-id': 6900 },
     });
   });
 
@@ -77,7 +77,7 @@ describe('TablerosService', () => {
     });
 
     const error = await service
-      .getContratos({ vigencia_id: 6900 })
+      .getContratos({ vigenciaId: 6900 })
       .catch((e) => e);
     expect(error).toBeInstanceOf(HttpException);
     expect(error.getStatus()).toBe(400);
@@ -104,11 +104,18 @@ describe('TablerosService', () => {
     expect(error.getStatus()).toBe(500);
   });
 
-  it('el DTO convierte vigencia_id de la query a número', () => {
+  it('el DTO lee vigencia-id de la query y lo convierte a número', () => {
+    expect(
+      plainToInstance(ContratosTableroQueryDto, { 'vigencia-id': '6900' })
+        .vigenciaId,
+    ).toBe(6900);
+  });
+
+  it('el DTO ya no lee el nombre anterior vigencia_id', () => {
     expect(
       plainToInstance(ContratosTableroQueryDto, { vigencia_id: '6900' })
-        .vigencia_id,
-    ).toBe(6900);
+        .vigenciaId,
+    ).toBeUndefined();
   });
 
   it('el módulo registra el controlador y el servicio', async () => {
