@@ -6,9 +6,9 @@ import request from 'supertest';
 import nock from 'nock';
 import { ContratoGeneralModule } from './../src/contrato-general/contrato-general.module';
 
-// e2e sin red real: POST /contratos-generales/estados?contrato-id= con el CRUD simulado con nock.
+// e2e sin red real: POST /contratos-generales/estados?contrato_id= con el CRUD simulado con nock.
 // Verifica el orden (número antes del estado), el reintento ante un 409 de la única y la
-// validación de contrato-id (udistrital/argo_documentacion#414).
+// validación de contrato_id (udistrital/argo_documentacion#414).
 const CRUD = 'http://crud.test/v1';
 const SUSCRITO = 6774;
 const cambio = {
@@ -17,7 +17,7 @@ const cambio = {
   usuario_id: 7,
   usuario_rol: 'JEFE_CONTRATACION_RECTOR',
 };
-const RUTA = '/contratos-generales/estados?contrato-id=42';
+const RUTA = '/contratos-generales/estados?contrato_id=42';
 const contrato = {
   id: 42,
   unidad_ejecutora_id: 6818,
@@ -25,7 +25,7 @@ const contrato = {
   numero_contrato: null,
 };
 
-describe('POST /contratos-generales/estados?contrato-id= (e2e con nock)', () => {
+describe('POST /contratos-generales/estados?contrato_id= (e2e con nock)', () => {
   let app: INestApplication;
 
   beforeAll(() => {
@@ -157,7 +157,7 @@ describe('POST /contratos-generales/estados?contrato-id= (e2e con nock)', () => 
     expect(estado.isDone()).toBe(false);
   });
 
-  it('201: registra un estado sin número con el id de contrato-id', async () => {
+  it('201: registra un estado sin número con el id de contrato_id', async () => {
     const enRevision = { ...cambio, estado_parametro_id: 6775 };
     const crud = nock(CRUD)
       .get('/contratos-generales/42')
@@ -182,7 +182,7 @@ describe('POST /contratos-generales/estados?contrato-id= (e2e con nock)', () => 
     expect(crud.isDone()).toBe(true);
   });
 
-  describe('contrato-id', () => {
+  describe('contrato_id', () => {
     const crudSinLlamar = () =>
       nock(CRUD)
         .get(/.*/)
@@ -220,12 +220,24 @@ describe('POST /contratos-generales/estados?contrato-id= (e2e con nock)', () => 
       '0',
       '-1',
       '2147483648',
-      '42&contrato-id=43',
+      '42&contrato_id=43',
     ])('400: %p no es válido y no ejecuta la operación', async (valor) => {
       const crud = crudSinLlamar();
 
       const res = await request(app.getHttpServer())
-        .post(`/contratos-generales/estados?contrato-id=${valor}`)
+        .post(`/contratos-generales/estados?contrato_id=${valor}`)
+        .send(cambio)
+        .expect(400);
+
+      expect(res.body).toEqual(cuerpoInvalido);
+      expect(crud.isDone()).toBe(false);
+    });
+
+    it('400: el nombre con guion (contrato-id) no se acepta', async () => {
+      const crud = crudSinLlamar();
+
+      const res = await request(app.getHttpServer())
+        .post('/contratos-generales/estados?contrato-id=42')
         .send(cambio)
         .expect(400);
 
