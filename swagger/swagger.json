@@ -255,7 +255,7 @@
         "operationId": "ContratoGeneralController_registrarEstado",
         "parameters": [
           {
-            "name": "contrato-id",
+            "name": "contrato_id",
             "required": true,
             "in": "query",
             "description": "Id del contrato general",
@@ -283,7 +283,7 @@
             "description": "Estado registrado; Data = { estado, numero_contrato }"
           },
           "400": {
-            "description": "contrato-id ausente o inválido, cuerpo inválido, contrato sin vigencia o unidad sin prefijo"
+            "description": "contrato_id ausente o inválido, cuerpo inválido, contrato sin vigencia o unidad sin prefijo"
           },
           "404": {
             "description": "Contrato no encontrado"
