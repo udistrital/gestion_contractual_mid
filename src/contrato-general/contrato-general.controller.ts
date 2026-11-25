@@ -18,6 +18,7 @@ import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/
 import { StandardResponse } from '../interfaces/responses.interface';
 import { ParametrosConsultarContratoDto } from './dto/params.dto';
 import { RegistrarEstadoContratoDto } from './dto/registrar-estado.dto';
+import { CONTRATO_ID_MAXIMO, ContratoIdPipe } from '../utils/contrato-id.pipe';
 
 @Controller('contratos-generales')
 export class ContratoGeneralController {
@@ -175,11 +176,12 @@ export class ContratoGeneralController {
 
   /**
    * @deprecated Se conserva para los clientes que aún lo llaman.
-   * El número lo asigna POST /contratos-generales/{id}/estados al pasar a SUSCRITO.
+   * El número lo asigna POST /contratos-generales/estados?contrato_id= al pasar a SUSCRITO.
    */
   @Post('numero-contrato')
   @ApiOperation({
-    summary: 'Generación de número de contrato (obsoleto: usar POST /contratos-generales/{id}/estados)',
+    summary:
+      'Generación de número de contrato (obsoleto: usar POST /contratos-generales/estados)',
     deprecated: true,
   })
   @ApiResponse({
@@ -222,25 +224,40 @@ export class ContratoGeneralController {
     }
   }
 
-  @Post(':id/estados')
+  @Post('estados')
   @ApiOperation({
     summary:
       'Registra un estado del contrato; al pasar a SUSCRITO asigna el número de contrato',
   })
-  @ApiParam({ name: 'id', description: 'Id del contrato general' })
+  @ApiQuery({
+    name: 'contrato_id',
+    required: true,
+    description: 'Id del contrato general',
+    schema: {
+      type: 'integer',
+      format: 'int32',
+      minimum: 1,
+      maximum: CONTRATO_ID_MAXIMO,
+      example: 42,
+    },
+  })
   @ApiBody({ type: RegistrarEstadoContratoDto })
   @ApiResponse({ status: 201, description: 'Estado registrado; Data = { estado, numero_contrato }' })
-  @ApiResponse({ status: 400, description: 'Cuerpo inválido, contrato sin vigencia o unidad sin prefijo' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'contrato_id ausente o inválido, cuerpo inválido, contrato sin vigencia o unidad sin prefijo',
+  })
   @ApiResponse({ status: 404, description: 'Contrato no encontrado' })
   @ApiResponse({ status: 409, description: 'El número chocó dos veces con otro contrato' })
   async registrarEstado(
-    @Param(ValidationPipe) param: ParametrosConsultarContratoDto,
+    @Query('contrato_id', ContratoIdPipe) contratoId: number,
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
     body: RegistrarEstadoContratoDto,
   ): Promise<StandardResponse<any>> {
     try {
       const result = await this.contratoGeneralService.registrarEstado(
-        Number(param.id),
+        contratoId,
         body,
       );
 
